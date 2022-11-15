@@ -5,6 +5,7 @@
    ))
 
 ; https://stackoverflow.com/questions/33446913/reagent-react-clojurescript-warning-every-element-in-a-seq-should-have-a-unique
+; https://stackoverflow.com/questions/24239144/js-console-log-in-clojurescript
 (defn items-view
   []
   (let [items (re-frame/subscribe [::subs/items])]
@@ -16,7 +17,8 @@
          [:li
           [:div.row
            [:div.col item]
-           [:div.col [:i.fa.fa-trash]]]])])))
+           [:div.col [:i.fa.fa-trash
+                      {:on-click #(apply (.-log js/console) (list "delete"))}]]]])])))
 
 (defn item-input
   []
