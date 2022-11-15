@@ -6,10 +6,15 @@
    )
   (:import [goog.events EventType]))
 
+(def initial 90)
+(def multiple 50)
+
 (re-frame.core/reg-event-db
   :add-item
   (fn [db [_ item-str]]
-    (update db :items #(conj % {:val item-str :height 0}))))
+    (update db :items #(conj % {:val item-str
+                                :height (+ initial
+                                           (* multiple (count (:items db))))}))))
 
 (defn vec-remove
   "remove elem in coll"
@@ -33,14 +38,27 @@
          default top
          offset (- (.-clientY e) top)]
      ; not sure how args to custom fxs work
-     {:db (assoc-in (:db cofx) [:items idx :z] @z)
+     {:db (-> (:db cofx)
+              (assoc-in [:items idx :z] z)
+              (assoc :drag-prev (- idx 1)))
       :listen-drag [idx offset]})))
 
 (re-frame.core/reg-event-db
  :do-drag
  (fn [db [_ evt offset idx]]
-   (let [y (- (.-clientY evt) offset)]
-     (assoc-in db [:items idx :height] y))))
+   (let [y (- (.-clientY evt) offset)
+         prev (:drag-prev db)]
+     (if (< (/ (- y initial) multiple) prev)
+       (-> db
+           (assoc-in [:items idx :height] y)
+           (update-in [:items prev :height] (fn [x] (+ x multiple)))
+           (update :drag-prev dec))
+       (if (> (/ (- y initial) multiple) (+ prev 2))
+         (-> db
+             (assoc-in [:items idx :height] y)
+             (update-in [:items (+ prev 2) :height] (fn [x] (- x multiple)))
+             (update :drag-prev inc))
+         (assoc-in db [:items idx :height] y))))))
 
 (re-frame.core/reg-fx
  :listen-drag

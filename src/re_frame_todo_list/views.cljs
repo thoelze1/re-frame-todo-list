@@ -161,9 +161,4 @@
   [:div
    {:style {:background-color :yellow}}
    [item-input]
-   [items-view]
-   [:div
-     {:style {:background :gray
-              :padding 0}}
-    [:span {:style {:position :relative
-                    :bottom 10}}"hi"]]])
+   [items-view]])
