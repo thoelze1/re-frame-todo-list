@@ -35,18 +35,20 @@
   []
   (let [new-item (re-frame/subscribe [::subs/new-item])
         gettext (fn [e] (-> e .-target .-value))
-        emit    (fn [e] (re-frame/dispatch [:new-item (gettext e)]))]
+        touch    (fn [e] (re-frame/dispatch [:new-item (gettext e)]))
+        add-item #(do
+                    (re-frame/dispatch [:add-item @new-item])
+                    (re-frame/dispatch [:new-item ""]))]
     [:div
      [:input
       {:type "text"
        :value @new-item
-       :on-change emit}]
+       :on-change touch
+       :on-key-press (fn [e] (if (= 13 (.-charCode e)) (add-item)))}]
      [:input
       {:type "button"
        :value "Add item"
-       :on-click #(do
-                    (re-frame/dispatch [:add-item @new-item])
-                    (re-frame/dispatch [:new-item ""]))}]]))
+       :on-click add-item}]]))
 
 
 (defn slider-demo
