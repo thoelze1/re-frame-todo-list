@@ -12,13 +12,16 @@
     (if (= 0 (count @items))
       [:div "You've got nothing to do!"]
       [:ul
-       (for [item @items]
-         ^{:key item}
-         [:li
-          [:div.row
-           [:div.col item]
-           [:div.col [:i.fa.fa-trash
-                      {:on-click #(apply (.-log js/console) (list "delete"))}]]]])])))
+       (doall
+        (map-indexed
+         (fn [index item]
+           ^{:key item}
+           [:li
+            [:div.row
+             [:div.col item]
+             [:div.col [:i.fa.fa-trash
+                        {:on-click #(re-frame/dispatch [:delete-item index])}]]]])
+         @items))])))
 
 (defn item-input
   []
