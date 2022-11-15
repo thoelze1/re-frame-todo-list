@@ -25,7 +25,8 @@
                      :bottom (:height item)}}
             [:div.col-1
              [:i.fa-solid.fa-ellipsis-vertical
-              {:on-mouse-down (fn [e] (re-frame/dispatch [:drag index e]))}]]
+              {:on-mouse-down (fn [e] (do (.preventDefault e)
+                                          (re-frame/dispatch [:drag index e])))}]]
             [:div.col-10 (:val item)]
             [:div.col-1 [:i.fa.fa-trash
                        {:on-click #(re-frame/dispatch [:delete-item index])}]]])
@@ -43,6 +44,7 @@
      [:input
       {:type "text"
        :value @new-item
+       ; perhaps this :on-change should filter newline
        :on-change touch
        :on-key-press (fn [e] (if (= 13 (.-charCode e)) (add-item)))}]
      [:input
