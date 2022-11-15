@@ -9,12 +9,15 @@
 (def initial 90)
 (def multiple 50)
 
+(defn idx->height
+  [idx]
+  (+ initial (* multiple idx)))
+
 (re-frame.core/reg-event-db
   :add-item
   (fn [db [_ item-str]]
     (update db :items #(conj % {:val item-str
-                                :height (+ initial
-                                           (* multiple (count (:items db))))}))))
+                                :height (idx->height (count (:items db)))}))))
 
 (defn vec-remove
   "remove elem in coll"
@@ -41,24 +44,32 @@
      {:db (-> (:db cofx)
               (assoc-in [:items idx :z] z)
               (assoc :drag-prev (- idx 1)))
-      :listen-drag [idx offset]})))
+      :listen-drag [idx offset (fn [] ())]})))
 
 (re-frame.core/reg-event-db
  :do-drag
  (fn [db [_ evt offset idx]]
    (let [y (- (.-clientY evt) offset)
          prev (:drag-prev db)]
-     (if (< (/ (- y initial) multiple) prev)
+     (if (and (< (/ (- y initial) multiple) prev)
+              (>= prev 0))
        (-> db
            (assoc-in [:items idx :height] y)
            (update-in [:items prev :height] (fn [x] (+ x multiple)))
            (update :drag-prev dec))
-       (if (> (/ (- y initial) multiple) (+ prev 2))
+       (if (and (> (/ (- y initial) multiple) (+ prev 2))
+                (< (+ 2 prev) (count (:items db))))
          (-> db
              (assoc-in [:items idx :height] y)
              (update-in [:items (+ prev 2) :height] (fn [x] (- x multiple)))
              (update :drag-prev inc))
          (assoc-in db [:items idx :height] y))))))
+
+(re-frame.core/reg-event-db
+ :stop-drag
+ (fn [db [_ idx]]
+   ; also set idx here
+   (assoc-in db [:items idx :height] (idx->height (+ 1 (:drag-prev db))))))
 
 (re-frame.core/reg-fx
  :listen-drag
@@ -66,7 +77,9 @@
    (let [f (fn [e] (re-frame.core/dispatch [:do-drag e offset idx]))]
      (events/listen js/window EventType.MOUSEMOVE f)
      (events/listen js/window EventType.MOUSEUP
-                    #(events/unlisten js/window EventType.MOUSEMOVE f)))))
+                    #(do
+                       (re-frame/dispatch [:stop-drag idx])
+                       (events/unlisten js/window EventType.MOUSEMOVE f))))))
 
 (re-frame/reg-event-db
  ::initialize-db

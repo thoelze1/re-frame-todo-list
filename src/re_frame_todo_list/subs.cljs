@@ -8,6 +8,11 @@
    (:items db)))
 
 (re-frame/reg-sub
+ ::drag-prev
+ (fn [db]
+   (:drag-prev db)))
+
+(re-frame/reg-sub
  ::new-item
  (fn [db]
    (:new-item db)))

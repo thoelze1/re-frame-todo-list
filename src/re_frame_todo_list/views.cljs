@@ -158,7 +158,11 @@
 
 
 (defn main-panel []
-  [:div
-   {:style {:background-color :yellow}}
-   [item-input]
-   [items-view]])
+  (let [drag-pos (re-frame/subscribe [::subs/drag-prev])
+        items (re-frame/subscribe [::subs/items])]
+    [:div
+     {:style {:background-color :yellow}}
+     [:div
+      [:span @drag-pos "," (count @items)]]
+     [item-input]
+     [items-view]]))
