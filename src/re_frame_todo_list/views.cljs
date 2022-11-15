@@ -16,7 +16,7 @@
          [:li
           [:div.row
            [:div.col item]
-           [:div.col "🗑"]]])])))
+           [:div.col [:i.fa.fa-trash]]]])])))
 
 (defn item-input
   []
