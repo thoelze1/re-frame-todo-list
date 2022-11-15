@@ -28,17 +28,18 @@
 
 (re-frame.core/reg-event-fx
  :drag
- (fn [cofx [_ idx e]]
-   (let [;top (-> e .-target .getBoundingClientRect .-top)
-         ;offset (- (.-clientY e) top)
-         offset (.-clientY e)]
+ (fn [cofx [_ idx e z]]
+   (let [top (-> e .-target .getBoundingClientRect .-top)
+         default top
+         offset (- (.-clientY e) top)]
      ; not sure how args to custom fxs work
-     {:listen-drag [idx offset]})))
+     {:db (assoc-in (:db cofx) [:items idx :z] @z)
+      :listen-drag [idx offset]})))
 
 (re-frame.core/reg-event-db
  :do-drag
  (fn [db [_ evt offset idx]]
-   (let [y (- offset (.-clientY evt))]
+   (let [y (- (.-clientY evt) offset)]
      (assoc-in db [:items idx :height] y))))
 
 (re-frame.core/reg-fx

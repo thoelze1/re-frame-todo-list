@@ -12,25 +12,34 @@
 ; https://stackoverflow.com/questions/24239144/js-console-log-in-clojurescript
 (defn items-view
   []
-  (let [items (re-frame/subscribe [::subs/items])]
-    (if (= 0 (count @items))
-      [:div "You've got nothing to do!"]
-      [:div.container
-       (doall
-        (map-indexed
-         (fn [index item]
-           ^{:key (:val item)}
-           [:div.row
-            {:style {:position :relative
-                     :bottom (:height item)}}
-            [:div.col-1
-             [:i.fa-solid.fa-ellipsis-vertical
-              {:on-mouse-down (fn [e] (do (.preventDefault e)
-                                          (re-frame/dispatch [:drag index e])))}]]
-            [:div.col-10 (:val item)]
-            [:div.col-1 [:i.fa.fa-trash
-                       {:on-click #(re-frame/dispatch [:delete-item index])}]]])
-         @items))])))
+  (let [z (reagent/atom 0)]
+    (fn []
+      (let [items (re-frame/subscribe [::subs/items])]
+        (if (= 0 (count @items))
+          [:div "You've got nothing to do!"]
+          [:div.container
+                                        ;{:position :absolute}
+           (doall
+            (map-indexed
+             (fn [index item]
+               ^{:key (:val item)}
+               [:div.row
+                [:div.row
+                 {:style {:position :absolute
+                          :background-color :gray
+                          :top (:height item)
+                          :z-index (:z item)}}
+                 [:div.col-1
+                  [:i.fa-solid.fa-ellipsis-vertical
+                   {:style {:cursor :pointer}
+                    :on-mouse-down (fn [e] (do (swap! z inc)
+                                             (.preventDefault e)
+                                               (re-frame/dispatch [:drag index e @z])))}]]
+                 [:div.col-10 (:val item)]
+                 [:div.col-1 [:i.fa.fa-trash
+                              {:style {:cursor :pointer}
+                               :on-click #(re-frame/dispatch [:delete-item index])}]]]])
+             @items))])))))
 
 (defn item-input
   []
@@ -150,6 +159,7 @@
 
 (defn main-panel []
   [:div
+   {:style {:background-color :yellow}}
    [item-input]
    [items-view]
    [:div
