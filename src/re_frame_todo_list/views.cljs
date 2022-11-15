@@ -8,9 +8,15 @@
 (defn items-view
   []
   (let [items (re-frame/subscribe [::subs/items])]
-    [:ul
-     (for [item @items]
-       ^{:key item} [:li item])]))
+    (if (= 0 (count @items))
+      [:div "You've got nothing to do!"]
+      [:ul
+       (for [item @items]
+         ^{:key item}
+         [:li
+          [:div.row
+           [:div.col item]
+           [:div.col "🗑"]]])])))
 
 (defn item-input
   []
