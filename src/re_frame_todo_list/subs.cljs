@@ -3,6 +3,16 @@
    [re-frame.core :as re-frame]))
 
 (re-frame/reg-sub
+ ::items
+ (fn [db]
+   (:items db)))
+
+(re-frame/reg-sub
+ ::new-item
+ (fn [db]
+   (:new-item db)))
+
+(re-frame/reg-sub
  ::name
  (fn [db]
    (:name db)))
