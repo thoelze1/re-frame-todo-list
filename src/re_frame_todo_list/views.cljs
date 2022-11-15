@@ -15,16 +15,20 @@
   (let [items (re-frame/subscribe [::subs/items])]
     (if (= 0 (count @items))
       [:div "You've got nothing to do!"]
-      [:ul
+      [:div.container
        (doall
         (map-indexed
          (fn [index item]
-           ^{:key item}
-           [:li
-            [:div.row
-             [:div.col item]
-             [:div.col [:i.fa.fa-trash
-                        {:on-click #(re-frame/dispatch [:delete-item index])}]]]])
+           ^{:key (:val item)}
+           [:div.row
+            {:style {:position :relative
+                     :bottom (:height item)}}
+            [:div.col-1
+             [:i.fa-solid.fa-ellipsis-vertical
+              {:on-mouse-down (fn [e] (re-frame/dispatch [:drag index e]))}]]
+            [:div.col-10 (:val item)]
+            [:div.col-1 [:i.fa.fa-trash
+                       {:on-click #(re-frame/dispatch [:delete-item index])}]]])
          @items))])))
 
 (defn item-input
@@ -144,4 +148,8 @@
   [:div
    [item-input]
    [items-view]
-   [slider-demo]])
+   [:div
+     {:style {:background :gray
+              :padding 0}}
+    [:span {:style {:position :relative
+                    :bottom 10}}"hi"]]])
