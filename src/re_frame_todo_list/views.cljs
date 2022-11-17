@@ -25,6 +25,7 @@
   [idx]
   (+ initial (* multiple idx)))
 
+;; maybe height should be a component-local reagent atom
 (defn items-view
   []
   (let [items (re-frame/subscribe [::subs/items])
@@ -40,6 +41,13 @@
            [:div.row
             {:style {:position :absolute
                      :background-color :gray
+                     ;; if we manually edit all the heights, then that means
+                     ;; that deletion becomes a constant time operation as we
+                     ;; have to manually go through and change all the
+                     ;; subsequent heights. Instead, we'll specially render the
+                     ;; dragged item and the displaced item. For now we'll store
+                     ;; the height information in the items list, though we
+                     ;; could store it directly in the app-db
                      :top (if (= index @selected-item)
                             (:height item)
                             (idx->height index))

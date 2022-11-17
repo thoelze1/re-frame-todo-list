@@ -80,27 +80,32 @@
     (when (some identity vs)
       (reduce #(rec-merge %1 %2) v vs))))
 
-(comment 
-  (re-frame.core/reg-event-db
-   :animate
-   ;; check if current item is equal to selected item; this is the only case
-   ;; when we should stop animation
-   (fn [db [_ idx]]
-     (assoc-in db [:items idx] (assoc next-item :height (idx->height idx))))))
+(re-frame.core/reg-event-db
+ :snap
+ ;; the index is in the wrong place and needs to be animated towards the correct
+ ;; place, which is determined by its index.
+ ;;
+ ;; if this function is non-atomic, e.g. if it slowly animates the target index
+ ;; toward its correct position, we will need to check if this index is ever
+ ;; equal to the selected item in which case the selected item has been dragged
+ ;; back into this item's place and so we need to stop animation so that this
+ ;; index can be animated toward a new location
+ (fn [db [_ idx]]
+   (assoc-in db [:items idx :height] (idx->height idx))))
 
 ;; name of :selected-item is misleading; should be called :selected-idx
-(re-frame.core/reg-event-db
+(re-frame.core/reg-event-fx
  :displace
- (fn [db [_ that-idx]]
-   (let [that-item (get-in db [:items that-idx])
+ (fn [cofx [_ that-idx]]
+   (let [db (:db cofx)
+         that-item (get-in db [:items that-idx])
          this-idx (:selected-item db)
          this-item (get-in db [:items this-idx])]
-     (-> db
-         ;; next we're going to adjust the following line to include animation
-         ;; I wonder if we should use add-item (with an index) to do the swap?
-         (assoc-in [:items this-idx] (assoc that-item :height (idx->height this-idx)))
-         (assoc-in [:items that-idx] (assoc this-item))
-         (assoc :selected-item that-idx)))))
+     {:db (-> db
+              (assoc-in [:items this-idx] that-item)
+              (assoc-in [:items that-idx] this-item)
+              (assoc :selected-item that-idx))
+      :fx [[:dispatch [:snap this-idx]]]})))
 
 (re-frame.core/reg-event-fx
  :drag
