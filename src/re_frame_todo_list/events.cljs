@@ -80,29 +80,44 @@
     (when (some identity vs)
       (reduce #(rec-merge %1 %2) v vs))))
 
+(comment 
+  (re-frame.core/reg-event-db
+   :animate
+   ;; check if current item is equal to selected item; this is the only case
+   ;; when we should stop animation
+   (fn [db [_ idx]]
+     (assoc-in db [:items idx] (assoc next-item :height (idx->height idx))))))
+
+;; name of :selected-item is misleading; should be called :selected-idx
 (re-frame.core/reg-event-db
+ :displace
+ (fn [db [_ that-idx]]
+   (let [that-item (get-in db [:items that-idx])
+         this-idx (:selected-item db)
+         this-item (get-in db [:items this-idx])]
+     (-> db
+         ;; next we're going to adjust the following line to include animation
+         ;; I wonder if we should use add-item (with an index) to do the swap?
+         (assoc-in [:items this-idx] (assoc that-item :height (idx->height this-idx)))
+         (assoc-in [:items that-idx] (assoc this-item))
+         (assoc :selected-item that-idx)))))
+
+(re-frame.core/reg-event-fx
  :drag
- (fn [db [_ evt offset]]
-   (let [y (- (.-clientY evt) offset)
-         idx (:selected-item db)
-         prev-idx (dec idx)
-         next-idx (inc idx)
-         item (get-in db [:items idx])]
-     (if (and (< (/ (- y initial) multiple) prev-idx)
-              (>= prev-idx 0))
-       (let [prev-item (get-in db [:items prev-idx])]
-         (-> db
-             (assoc-in [:items idx] (assoc prev-item :height (idx->height idx)))
-             (assoc-in [:items prev-idx] (assoc item :height y))
-             (assoc :selected-item prev-idx)))
-       (if (and (> (/ (- y initial) multiple) next-idx)
-                (< next-idx (count (:items db))))
-         (let [next-item (get-in db [:items next-idx])]
-           (-> db
-               (assoc-in [:items idx] (assoc next-item :height (idx->height idx)))
-               (assoc-in [:items next-idx] (assoc item :height y))
-               (assoc :selected-item next-idx)))
-         (assoc-in db [:items idx :height] y))))))
+ (fn [cofx [_ evt offset]]
+   (let [db (:db cofx)
+         y (- (.-clientY evt) offset)
+         idx (:selected-item db)]
+     {:db (assoc-in db [:items idx :height] y)
+      :fx (let [prev-idx (dec idx)]
+            (if (and (< (/ (- y initial) multiple) prev-idx)
+                     (>= prev-idx 0))
+              [[:dispatch [:displace prev-idx]]]
+              (let [next-idx (inc idx)]
+                (if (and (> (/ (- y initial) multiple) next-idx)
+                         (< next-idx (count (:items db))))
+                  [[:dispatch [:displace next-idx]]]
+                  []))))})))
 
 ;; note: updating the height value below is currently redundant, since the view
 ;; renders the selected item differently than all others; therefore dissoc'ing
