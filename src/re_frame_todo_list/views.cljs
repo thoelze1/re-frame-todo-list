@@ -34,33 +34,35 @@
       [:div.container
        ;; {:position :absolute}
        (doall
-        (for [[id item] @items]
-          ^{:key id}
-          [:div.row
-           {:style {:position :absolute
-                    :background-color :gray
-                    :top (if (= id @selected-item)
-                           (:height item)
-                           (idx->height (:idx item)))
-                    :z-index (if (= id @selected-item) 1 0)}}
-           [:div.col-1
-            [:i.fa-solid.fa-ellipsis-vertical
-             {:style {:cursor :pointer}
-              :on-mouse-down (fn [e] (do (.preventDefault e)
-                                         (re-frame/dispatch [:lift id e])))}]]
-           [:div.col-10 (:val item) (:idx item)]
-           [:div.col-1 [:i.fa.fa-trash
-                        {:style {:cursor :pointer}
-                         :on-click #(re-frame/dispatch [:delete-item id])}]]]))])))
+        (map-indexed
+         (fn [index item]
+           ^{:key index}
+           [:div.row
+            {:style {:position :absolute
+                     :background-color :gray
+                     :top (if (= index @selected-item)
+                            (:height item)
+                            (idx->height index))
+                     :z-index (if (= index @selected-item) 1 0)}}
+            [:div.col-1
+             [:i.fa-solid.fa-ellipsis-vertical
+              {:style {:cursor :pointer}
+               :on-mouse-down (fn [e] (do (.preventDefault e)
+                                          (re-frame/dispatch [:lift index e])))}]]
+            [:div.col-10 (:val item)]
+            [:div.col-1 [:i.fa.fa-trash
+                         {:style {:cursor :pointer}
+                          :on-click #(re-frame/dispatch [:delete-item index])}]]])
+         @items))])))
 
 (defn item-input
   []
   (let [new-item (re-frame/subscribe [::subs/new-item])
         gettext  (fn [e] (-> e .-target .-value))
-        touch    (fn [e] (re-frame/dispatch [:new-item (gettext e)]))
+        touch    (fn [e] (re-frame/dispatch [:edit-new-item (gettext e)]))
         add-item #(do
                     (re-frame/dispatch [:add-item @new-item])
-                    (re-frame/dispatch [:new-item ""]))]
+                    (re-frame/dispatch [:edit-new-item ""]))]
     [:div
      [:input
       {:type "text"
@@ -170,12 +172,11 @@
 
 
 (defn main-panel []
-  (let [drag-pos (re-frame/subscribe [::subs/drag-prev])
-        items (re-frame/subscribe [::subs/items])
-        items-order (re-frame/subscribe [::subs/items-order])]
-    [:div
-     {:style {:background-color :yellow}}
-     [:div
-      [:span @drag-pos "," (str @items) "," (str @items-order)]]
+  (let [items (re-frame/subscribe [::subs/items])
+        selected-item (re-frame/subscribe [::subs/selected-item])]
+    [:div.container
+     [:div.row
+      [:p (str @selected-item)]
+      [:p (str @items)]]
      [item-input]
      [items-view]]))

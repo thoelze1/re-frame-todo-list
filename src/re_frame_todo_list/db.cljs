@@ -2,5 +2,5 @@
 
 (def default-db
   {:new-item ""
-   :items-order []
-   :items {}})
+   :items []
+   :selected-item nil})

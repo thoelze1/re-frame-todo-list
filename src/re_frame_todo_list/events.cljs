@@ -7,6 +7,8 @@
    )
   (:import [goog.events EventType]))
 
+(enable-console-print!)
+
 (def initial 90)
 (def multiple 100)
 
@@ -28,10 +30,8 @@
    (fn [db [_ item-str]]
      (do (swap! id inc)
          (let [idx (count (:items db))]
-           (-> db
-               (update :items-order conj @id)
-               (assoc-in [:items @id] {:val item-str
-                                       :idx idx
+           (update db :items #(conj % {:val item-str
+                                       :id @id
                                        :height (idx->height idx)})))))))
 
 (defn vec-remove
@@ -42,36 +42,35 @@
 ;; O(n) deletion
 (re-frame.core/reg-event-db
  :delete-item
- (fn [db [_ id]]
-   (let [idx (get-in db [:items id :idx])]
-     (reduce (fn [m i]
-               (update-in m [:items (get-in db [:items-order i]) :idx] dec))
-             (-> db (update :items dissoc id)                 
-                 (update :items-order vec-remove idx))
-             (range (inc idx) (count (:items db)))))))
+ (fn [db [_ idx]]
+   (update db :items vec-remove idx)))
 
 (re-frame.core/reg-event-db
-  :new-item
-  (fn [db [_ item-str]]
-    (assoc db :new-item item-str)))
+  :edit-new-item
+  (fn [db [_ new-str]]
+    (assoc db :new-item new-str)))
 
 (re-frame.core/reg-event-fx
  :lift
- (fn [cofx [_ id e]]
-   (let [top (-> e .-target .getBoundingClientRect .-top)
-         offset (- (.-clientY e) top)]
-     {:db (assoc (:db cofx) :selected-item id)
-      :listen-drag [id offset]})))
+ (fn [cofx [_ idx e]]
+   (do
+     (println "lift")
+     (let [top (-> e .-target .getBoundingClientRect .-top)
+           offset (- (.-clientY e) top)]
+       {:db (assoc (:db cofx) :selected-item idx)
+        :listen-drag offset}))))
 
 (re-frame.core/reg-fx
  :listen-drag
- (fn [[id offset]]
-   (let [f (fn [e] (re-frame.core/dispatch [:drag e offset id]))]
-     (events/listen js/window EventType.MOUSEMOVE f)
+ (fn [offset]
+   (let [drag (fn [e] (re-frame.core/dispatch [:drag e offset]))
+         drop (fn [] (re-frame/dispatch [:drop]))]
+     (events/listen js/window EventType.MOUSEMOVE drag)
+     (events/listen js/window EventType.MOUSEUP drop)
      (events/listen js/window EventType.MOUSEUP
-                    #(do
-                       (re-frame/dispatch [:drop id])
-                       (events/unlisten js/window EventType.MOUSEMOVE f))))))
+                    #(do 
+                       (events/unlisten js/window EventType.MOUSEUP drop)
+                       (events/unlisten js/window EventType.MOUSEMOVE drag))))))
 
 (defn deep-merge [v & vs]
   (letfn [(rec-merge [v1 v2]
@@ -81,43 +80,42 @@
     (when (some identity vs)
       (reduce #(rec-merge %1 %2) v vs))))
 
-;; drag-prev is redundant; use selected instead
-;; use merge to simplify!
 (re-frame.core/reg-event-db
  :drag
- (fn [db [_ evt offset id]]
+ (fn [db [_ evt offset]]
    (let [y (- (.-clientY evt) offset)
-         idx (get-in db [:items id :idx])
-         swapped-items (fn [other-idx op]
-                         (let [other-id (get-in db [:items-order other-idx])
-                               other-height (get-in db [:items other-id :height])]
-                           {:items {id {:idx other-idx}
-                                    other-id {:height (op other-height multiple)
-                                              :idx idx}}
-                            :items-order (-> (:items-order db)
-                                             (assoc idx other-id)
-                                             (assoc other-idx id))}))]
-     (let [prev-idx (dec idx)
-           next-idx (inc idx)
-           prev-id (get-in db [:items-order prev-idx])
-           next-id (get-in db [:items-order next-idx])]
-       (if (and (< (/ (- y initial) multiple) prev-idx)
-                (>= prev-idx 0))
-         (assoc-in (deep-merge db (swapped-items prev-idx +)) [:items id :height] y)
-         (if (and (> (/ (- y initial) multiple) next-idx)
-                  (< next-idx (count (:items db))))
-           (assoc-in (deep-merge db (swapped-items next-idx -)) [:items id :height] y)
-           (assoc-in db [:items id :height] y)))))))
+         idx (:selected-item db)
+         prev-idx (dec idx)
+         next-idx (inc idx)
+         item (get-in db [:items idx])]
+     (if (and (< (/ (- y initial) multiple) prev-idx)
+              (>= prev-idx 0))
+       (let [prev-item (get-in db [:items prev-idx])]
+         (-> db
+             (assoc-in [:items idx] (assoc prev-item :height (idx->height idx)))
+             (assoc-in [:items prev-idx] (assoc item :height y))
+             (assoc :selected-item prev-idx)))
+       (if (and (> (/ (- y initial) multiple) next-idx)
+                (< next-idx (count (:items db))))
+         (let [next-item (get-in db [:items next-idx])]
+           (-> db
+               (assoc-in [:items idx] (assoc next-item :height (idx->height idx)))
+               (assoc-in [:items next-idx] (assoc item :height y))
+               (assoc :selected-item next-idx)))
+         (assoc-in db [:items idx :height] y))))))
 
-;; is passing id redundant? we have this information in :selected-item (for use
-;; by subscriptions, but also usable here)
+;; note: updating the height value below is currently redundant, since the view
+;; renders the selected item differently than all others; therefore dissoc'ing
+;; the selected item is sufficient to have the dragged item snap into place
 (re-frame.core/reg-event-db
  :drop
- (fn [db [_ id]]
-   ;; also set idx here
-   (-> db
-       (assoc-in [:items id :height] (idx->height (get-in db [:items id :idx])))
-       (dissoc :selected-item))))
+ (fn [db [_]]
+   (let [idx (:selected-item db)]
+     (do
+       (println idx)
+       (-> db
+           (assoc-in [:items idx :height] (idx->height idx))
+           (dissoc :selected-item))))))
 
 (re-frame/reg-event-db
  ::initialize-db
