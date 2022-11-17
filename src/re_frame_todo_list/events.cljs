@@ -2,32 +2,53 @@
   (:require
    [re-frame.core :as re-frame]
    [re-frame-todo-list.db :as db]
+   [reagent.core :as reagent]
    [goog.events :as events]
    )
   (:import [goog.events EventType]))
 
 (def initial 90)
-(def multiple 50)
+(def multiple 100)
+
+;; a data structure that can be indexed by two different types of values: an id
+;; and an index. simple implementation as:
+;; map from index to id
+;; map from id to (index,val)
+;; if given an id, that's a constant time lookup AND deletion
+;; if given an index, that's a constant time lookup AND deletion
 
 (defn idx->height
   [idx]
   (+ initial (* multiple idx)))
 
+;; O(1) append
 (re-frame.core/reg-event-db
-  :add-item
-  (fn [db [_ item-str]]
-    (update db :items #(conj % {:val item-str
-                                :height (idx->height (count (:items db)))}))))
+ :add-item
+ (let [id (reagent/atom 21)]
+   (fn [db [_ item-str]]
+     (do (swap! id inc)
+         (let [idx (count (:items db))]
+           (-> db
+               (update :items-order conj @id)
+               (assoc-in [:items @id] {:val item-str
+                                       :idx idx
+                                       :height (idx->height idx)})))))))
 
 (defn vec-remove
   "remove elem in coll"
   [coll pos]
   (into (subvec coll 0 pos) (subvec coll (inc pos))))
 
+;; O(n) deletion
 (re-frame.core/reg-event-db
-  :delete-item
-  (fn [db [_ item-idx]]
-    (update db :items #(vec-remove % item-idx))))
+ :delete-item
+ (fn [db [_ id]]
+   (let [idx (get-in db [:items id :idx])]
+     (reduce (fn [m i]
+               (update-in m [:items (get-in db [:items-order i]) :idx] dec))
+             (-> db (update :items dissoc id)                 
+                 (update :items-order vec-remove idx))
+             (range (inc idx) (count (:items db)))))))
 
 (re-frame.core/reg-event-db
   :new-item
@@ -35,51 +56,68 @@
     (assoc db :new-item item-str)))
 
 (re-frame.core/reg-event-fx
- :drag
- (fn [cofx [_ idx e z]]
+ :lift
+ (fn [cofx [_ id e]]
    (let [top (-> e .-target .getBoundingClientRect .-top)
-         default top
          offset (- (.-clientY e) top)]
-     ; not sure how args to custom fxs work
-     {:db (-> (:db cofx)
-              (assoc-in [:items idx :z] z)
-              (assoc :drag-prev (- idx 1)))
-      :listen-drag [idx offset (fn [] ())]})))
-
-(re-frame.core/reg-event-db
- :do-drag
- (fn [db [_ evt offset idx]]
-   (let [y (- (.-clientY evt) offset)
-         prev (:drag-prev db)]
-     (if (and (< (/ (- y initial) multiple) prev)
-              (>= prev 0))
-       (-> db
-           (assoc-in [:items idx :height] y)
-           (update-in [:items prev :height] (fn [x] (+ x multiple)))
-           (update :drag-prev dec))
-       (if (and (> (/ (- y initial) multiple) (+ prev 2))
-                (< (+ 2 prev) (count (:items db))))
-         (-> db
-             (assoc-in [:items idx :height] y)
-             (update-in [:items (+ prev 2) :height] (fn [x] (- x multiple)))
-             (update :drag-prev inc))
-         (assoc-in db [:items idx :height] y))))))
-
-(re-frame.core/reg-event-db
- :stop-drag
- (fn [db [_ idx]]
-   ; also set idx here
-   (assoc-in db [:items idx :height] (idx->height (+ 1 (:drag-prev db))))))
+     {:db (assoc (:db cofx) :selected-item id)
+      :listen-drag [id offset]})))
 
 (re-frame.core/reg-fx
  :listen-drag
- (fn [[idx offset]]
-   (let [f (fn [e] (re-frame.core/dispatch [:do-drag e offset idx]))]
+ (fn [[id offset]]
+   (let [f (fn [e] (re-frame.core/dispatch [:drag e offset id]))]
      (events/listen js/window EventType.MOUSEMOVE f)
      (events/listen js/window EventType.MOUSEUP
                     #(do
-                       (re-frame/dispatch [:stop-drag idx])
+                       (re-frame/dispatch [:drop id])
                        (events/unlisten js/window EventType.MOUSEMOVE f))))))
+
+(defn deep-merge [v & vs]
+  (letfn [(rec-merge [v1 v2]
+                     (if (and (map? v1) (map? v2))
+                       (merge-with deep-merge v1 v2)
+                       v2))]
+    (when (some identity vs)
+      (reduce #(rec-merge %1 %2) v vs))))
+
+;; drag-prev is redundant; use selected instead
+;; use merge to simplify!
+(re-frame.core/reg-event-db
+ :drag
+ (fn [db [_ evt offset id]]
+   (let [y (- (.-clientY evt) offset)
+         idx (get-in db [:items id :idx])
+         swapped-items (fn [other-idx op]
+                         (let [other-id (get-in db [:items-order other-idx])
+                               other-height (get-in db [:items other-id :height])]
+                           {:items {id {:idx other-idx}
+                                    other-id {:height (op other-height multiple)
+                                              :idx idx}}
+                            :items-order (-> (:items-order db)
+                                             (assoc idx other-id)
+                                             (assoc other-idx id))}))]
+     (let [prev-idx (dec idx)
+           next-idx (inc idx)
+           prev-id (get-in db [:items-order prev-idx])
+           next-id (get-in db [:items-order next-idx])]
+       (if (and (< (/ (- y initial) multiple) prev-idx)
+                (>= prev-idx 0))
+         (assoc-in (deep-merge db (swapped-items prev-idx +)) [:items id :height] y)
+         (if (and (> (/ (- y initial) multiple) next-idx)
+                  (< next-idx (count (:items db))))
+           (assoc-in (deep-merge db (swapped-items next-idx -)) [:items id :height] y)
+           (assoc-in db [:items id :height] y)))))))
+
+;; is passing id redundant? we have this information in :selected-item (for use
+;; by subscriptions, but also usable here)
+(re-frame.core/reg-event-db
+ :drop
+ (fn [db [_ id]]
+   ;; also set idx here
+   (-> db
+       (assoc-in [:items id :height] (idx->height (get-in db [:items id :idx])))
+       (dissoc :selected-item))))
 
 (re-frame/reg-event-db
  ::initialize-db

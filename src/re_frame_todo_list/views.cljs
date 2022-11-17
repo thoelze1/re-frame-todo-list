@@ -8,43 +8,55 @@
    [re-frame-todo-list.macros :as macros]
    ))
 
+;; the todo items should comprise a priority level; therefore this priority
+;; level (which I'm using as `height` or `idx`) should be stored in the db the
+;; priority level is a data structure abstraction; the "height" is simply a
+;; visual abstraction. therefore the height related information should live in
+;; the view context, and perhaps passed as necessary to the events context
+
+
 ; https://stackoverflow.com/questions/33446913/reagent-react-clojurescript-warning-every-element-in-a-seq-should-have-a-unique
 ; https://stackoverflow.com/questions/24239144/js-console-log-in-clojurescript
+
+(def initial 90)
+(def multiple 100)
+
+(defn idx->height
+  [idx]
+  (+ initial (* multiple idx)))
+
 (defn items-view
   []
-  (let [z (reagent/atom 0)]
-    (fn []
-      (let [items (re-frame/subscribe [::subs/items])]
-        (if (= 0 (count @items))
-          [:div "You've got nothing to do!"]
-          [:div.container
-                                        ;{:position :absolute}
-           (doall
-            (map-indexed
-             (fn [index item]
-               ^{:key (:val item)}
-               [:div.row
-                [:div.row
-                 {:style {:position :absolute
-                          :background-color :gray
-                          :top (:height item)
-                          :z-index (:z item)}}
-                 [:div.col-1
-                  [:i.fa-solid.fa-ellipsis-vertical
-                   {:style {:cursor :pointer}
-                    :on-mouse-down (fn [e] (do (swap! z inc)
-                                             (.preventDefault e)
-                                               (re-frame/dispatch [:drag index e @z])))}]]
-                 [:div.col-10 (:val item)]
-                 [:div.col-1 [:i.fa.fa-trash
-                              {:style {:cursor :pointer}
-                               :on-click #(re-frame/dispatch [:delete-item index])}]]]])
-             @items))])))))
+  (let [items (re-frame/subscribe [::subs/items])
+        selected-item (re-frame/subscribe [::subs/selected-item])]
+    (if (= 0 (count @items))
+      [:div "You've got nothing to do!"]
+      [:div.container
+       ;; {:position :absolute}
+       (doall
+        (for [[id item] @items]
+          ^{:key id}
+          [:div.row
+           {:style {:position :absolute
+                    :background-color :gray
+                    :top (if (= id @selected-item)
+                           (:height item)
+                           (idx->height (:idx item)))
+                    :z-index (if (= id @selected-item) 1 0)}}
+           [:div.col-1
+            [:i.fa-solid.fa-ellipsis-vertical
+             {:style {:cursor :pointer}
+              :on-mouse-down (fn [e] (do (.preventDefault e)
+                                         (re-frame/dispatch [:lift id e])))}]]
+           [:div.col-10 (:val item) (:idx item)]
+           [:div.col-1 [:i.fa.fa-trash
+                        {:style {:cursor :pointer}
+                         :on-click #(re-frame/dispatch [:delete-item id])}]]]))])))
 
 (defn item-input
   []
   (let [new-item (re-frame/subscribe [::subs/new-item])
-        gettext (fn [e] (-> e .-target .-value))
+        gettext  (fn [e] (-> e .-target .-value))
         touch    (fn [e] (re-frame/dispatch [:new-item (gettext e)]))
         add-item #(do
                     (re-frame/dispatch [:add-item @new-item])
@@ -53,7 +65,7 @@
      [:input
       {:type "text"
        :value @new-item
-       ; perhaps this :on-change should filter newline
+       ;; perhaps this :on-change should filter newline
        :on-change touch
        :on-key-press (fn [e] (if (= 13 (.-charCode e)) (add-item)))}]
      [:input
@@ -159,10 +171,11 @@
 
 (defn main-panel []
   (let [drag-pos (re-frame/subscribe [::subs/drag-prev])
-        items (re-frame/subscribe [::subs/items])]
+        items (re-frame/subscribe [::subs/items])
+        items-order (re-frame/subscribe [::subs/items-order])]
     [:div
      {:style {:background-color :yellow}}
      [:div
-      [:span @drag-pos "," (count @items)]]
+      [:span @drag-pos "," (str @items) "," (str @items-order)]]
      [item-input]
      [items-view]]))
