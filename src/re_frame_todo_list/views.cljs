@@ -6,6 +6,7 @@
    [re-com.slider :refer [slider-parts-desc slider-args-desc]]
    [reagent.core  :as    reagent]
    [re-frame-todo-list.macros :as macros]
+   [cljsjs.react-flip-move]
    ))
 
 ;; the todo items should comprise a priority level; therefore this priority
