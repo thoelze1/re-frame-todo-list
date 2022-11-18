@@ -21,50 +21,87 @@
 
 (def flip-move (reagent/adapt-react-class js/FlipMove))
 
-(def initial 90)
-(def multiple 100)
+(def initial 0)
+(def multiple 60)
 
 (defn idx->height
   [idx]
   (+ initial (* multiple idx)))
+
+(defn item-view
+  [index item]
+  [:div.row
+   {:style {:margin 10
+            :background-color :gray}}
+   [:div.col-1
+    [:i.fa-solid.fa-ellipsis-vertical
+     {:style {:cursor :pointer}
+      :on-mouse-down (fn [e] (do (.preventDefault e)
+                                 (re-frame/dispatch [:lift index e])))}]]
+   [:div.col-10 [:p (:val item)]]
+   [:div.col-1 [:i.fa.fa-trash
+                {:style {:cursor :pointer}
+                 :on-click #(re-frame/dispatch [:delete-item index])}]]])
 
 ;; maybe height should be a component-local reagent atom
 (defn items-view
   []
   (let [items (re-frame/subscribe [::subs/items])
         selected-item (re-frame/subscribe [::subs/selected-item])]
-    (if (= 0 (count @items))
-      [:div "You've got nothing to do!"]
-      [:div.container
-       ;; {:position :absolute}
-       (doall
-        (map-indexed
-         (fn [index item]
-           ^{:key index}
-           [:div.row
-            {:style {:position :absolute
-                     :background-color :gray
-                     ;; if we manually edit all the heights, then that means
-                     ;; that deletion becomes a constant time operation as we
-                     ;; have to manually go through and change all the
-                     ;; subsequent heights. Instead, we'll specially render the
-                     ;; dragged item and the displaced item. For now we'll store
-                     ;; the height information in the items list, though we
-                     ;; could store it directly in the app-db
-                     :top (if (= index @selected-item)
-                            (:height item)
-                            (idx->height index))
-                     :z-index (if (= index @selected-item) 1 0)}}
-            [:div.col-1
-             [:i.fa-solid.fa-ellipsis-vertical
-              {:style {:cursor :pointer}
-               :on-mouse-down (fn [e] (do (.preventDefault e)
-                                          (re-frame/dispatch [:lift index e])))}]]
-            [:div.col-10 (:val item)]
-            [:div.col-1 [:i.fa.fa-trash
-                         {:style {:cursor :pointer}
-                          :on-click #(re-frame/dispatch [:delete-item index])}]]])
-         @items))])))
+    [:div
+     [:div {:style {:position :absolute}} "hi"]
+     (if (= 0 (count @items))
+       [:div "You've got nothing to do!"]
+       [:div.container
+        {:style {:position :relative}}
+        ;; This was an attempt to re-draw the dragged element! Makes much more
+        ;; sense to directly manipulate the element drawn by flip-move
+        (if @selected-item
+          (do #_(println "item: " (str (js/document.getElementById (str @selected-item))))
+              (let [h (-> js/document
+                          (.getElementById (str (get-in @items [@selected-item :id])))
+                          (.getBoundingClientRect)
+                          (.-height))]
+                (do #_(println (str h))
+                    [:div 
+                     (let [item (get @items @selected-item)]
+                       [:div.row {:style {:z-index 10000
+                           ;:position :absolute
+                           :flex-wrap "wrap"
+                           ;:display "flex"
+                           ;:flex-direction "row"
+                                          }}
+                        [:div.row {:style {:position :absolute}}
+                         [:div.row {:style {:position :absolute
+                                            :top (:height item)}}
+                          [item-view @selected-item item]]]])]))))
+        
+        [flip-move {:duration 500
+                    :easing "cubic-bezier(0.6, -0.28, 0.735, 0.045)"}
+         (doall
+          (map-indexed
+           (fn [index item]
+             ^{:key (:id item)}
+             [:div.row
+              
+              {:style {:visibility (if (= index @selected-item) :hidden)
+                       ;;:position (if (= index @selected-item) :absolute)
+                       ;; if we manually track all the heights, then that means
+                       ;; that deletion becomes a constant time operation as we
+                       ;; have to manually go through and change all the
+                       ;; subsequent heights. Instead, we'll specially render the
+                       ;; dragged item and the displaced item. For now we'll store
+                       ;; the height information in the items list, though we
+                       ;; could store it directly in the app-db
+                       :top (if (= index @selected-item)
+                                     (:height item)
+                                     0 ;(idx->height index)
+                                     )
+                       :z-index (if (= index @selected-item) 1 0)}
+               :key (:id item)
+               :id (str (:id item))}
+              [item-view index item]])
+           @items))]])]))
 
 (defn item-input
   []
@@ -80,7 +117,8 @@
        :value @new-item
        ;; perhaps this :on-change should filter newline
        :on-change touch
-       :on-key-press (fn [e] (if (= 13 (.-charCode e)) (add-item)))}]
+       :on-key-press (fn [e] (if (= 13 (.-charCode e)) (add-item) ))
+       }]
      [:input
       {:type "button"
        :value "Add item"
@@ -185,31 +223,11 @@
 (defn main-panel []
   (let [items (re-frame/subscribe [::subs/items])
         selected-item (re-frame/subscribe [::subs/selected-item])
+        si @selected-item
         new-item (re-frame/subscribe [::subs/new-item])]
     [:div.container
-     [:div.row
-      [flip-move {:duration 500
-                  :easing "cubic-bezier(0.6, -0.28, 0.735, 0.045)" ;;"linear"
-                  } #_{:style {:display "flex"
-                               :flex-direction "row"
-                               :flex-wrap "wrap"
-                               :justify-content "flex-start" ;;"space-around"
-                               :align-items "center"
-                               :padding 0
-                               :margin 0
-                               :background-color "white"}
-                                        ;                 :enter-animation true
-                       :duration 1000
-                                        ;:easing "cubic-bezier(0.6, -0.28, 0.735, 0.045)" ;;"linear"
-                                        ;:staggerDelayBy 20
-                                        ;:staggerDurationBy 20
-                       }
-       (map (fn [i]
-              (vector :div.square
-                      {:key (:id i)}
-                      "hi"))
-            @items)]]
-     [:div.row
+     [:div.row]
+     #_[:div.row
       [:p (str @selected-item)]
       [:p (str @items)]]
      [item-input]

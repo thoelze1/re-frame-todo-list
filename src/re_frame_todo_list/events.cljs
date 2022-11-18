@@ -9,8 +9,8 @@
 
 (enable-console-print!)
 
-(def initial 90)
-(def multiple 100)
+(def initial 0)
+(def multiple 60)
 
 ;; a data structure that can be indexed by two different types of values: an id
 ;; and an index. simple implementation as:
@@ -58,7 +58,8 @@
      (let [top (-> e .-target .getBoundingClientRect .-top)
            offset (- (.-clientY e) top)]
        {:db (assoc (:db cofx) :selected-item idx)
-        :listen-drag offset}))))
+        :listen-drag 50;offset
+        }))))
 
 (re-frame.core/reg-fx
  :listen-drag
