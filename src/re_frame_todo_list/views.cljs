@@ -19,6 +19,8 @@
 ; https://stackoverflow.com/questions/33446913/reagent-react-clojurescript-warning-every-element-in-a-seq-should-have-a-unique
 ; https://stackoverflow.com/questions/24239144/js-console-log-in-clojurescript
 
+(def flip-move (reagent/adapt-react-class js/FlipMove))
+
 (def initial 90)
 (def multiple 100)
 
@@ -182,8 +184,31 @@
 
 (defn main-panel []
   (let [items (re-frame/subscribe [::subs/items])
-        selected-item (re-frame/subscribe [::subs/selected-item])]
+        selected-item (re-frame/subscribe [::subs/selected-item])
+        new-item (re-frame/subscribe [::subs/new-item])]
     [:div.container
+     [:div.row
+      [flip-move {:duration 500
+                  :easing "cubic-bezier(0.6, -0.28, 0.735, 0.045)" ;;"linear"
+                  } #_{:style {:display "flex"
+                               :flex-direction "row"
+                               :flex-wrap "wrap"
+                               :justify-content "flex-start" ;;"space-around"
+                               :align-items "center"
+                               :padding 0
+                               :margin 0
+                               :background-color "white"}
+                                        ;                 :enter-animation true
+                       :duration 1000
+                                        ;:easing "cubic-bezier(0.6, -0.28, 0.735, 0.045)" ;;"linear"
+                                        ;:staggerDelayBy 20
+                                        ;:staggerDurationBy 20
+                       }
+       (map (fn [i]
+              (vector :div.square
+                      {:key (:id i)}
+                      "hi"))
+            @items)]]
      [:div.row
       [:p (str @selected-item)]
       [:p (str @items)]]
