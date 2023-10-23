@@ -65,7 +65,7 @@
                 (do #_(println (str h))
                     [:div 
                      (let [item (get @items @selected-item)]
-                       [:div.row {:style {:z-index 10000
+                       [:div.row {:style {
                            ;:position :absolute
                            :flex-wrap "wrap"
                            ;:display "flex"
@@ -73,7 +73,8 @@
                                           }}
                         [:div.row {:style {:position :absolute}}
                          [:div.row {:style {:position :absolute
-                                            :top (:height item)}}
+                                            :top (:height item)
+                                            :z-index 1}}
                           [item-view @selected-item item]]]])]))))
         
         [flip-move {:duration 500
@@ -96,8 +97,7 @@
                        :top (if (= index @selected-item)
                                      (:height item)
                                      0 ;(idx->height index)
-                                     )
-                       :z-index (if (= index @selected-item) 1 0)}
+                                     )}
                :key (:id item)
                :id (str (:id item))}
               [item-view index item]])
