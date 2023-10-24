@@ -47,9 +47,12 @@
 (defn items-view
   []
   (let [items (re-frame/subscribe [::subs/items])
-        selected-item (re-frame/subscribe [::subs/selected-item])]
+        selected-item (re-frame/subscribe [::subs/selected-item])
+        moving? (reagent/atom nil)]
+    (fn
+    []
     [:div
-     [:div {:style {:position :absolute}} "hi"]
+     [:div {:style {:position :absolute}} "moving? " (str @moving? " " @selected-item)]
      (if (= 0 (count @items))
        [:div "You've got nothing to do!"]
        [:div.container
@@ -76,16 +79,31 @@
                                             :top (:height item)
                                             :z-index 1}}
                           [item-view @selected-item item]]]])]))))
+        (if (and (not @selected-item) @moving?)
+          [:div
+           [:div.row {:style {:flex-wrap "wrap"}}
+            [:div.row {:style {:position :absolute}}
+             [:div.row {:style {:position :absolute
+                                :top (:height (get @items @moving?))
+                                :z-index 1}}
+              [item-view @selected-item (get @items @moving?)]]]]])
         
         [flip-move {:duration 500
-                    :easing "cubic-bezier(0.6, -0.28, 0.735, 0.045)"}
+                    :easing "cubic-bezier(0, 1, 1, 1)"
+                    :onStartAll (fn [reactKids domNodes]
+                                  (do (js/console.log "start" @moving?)
+                                      (reset! moving? @selected-item)))
+                    :onFinishAll (fn [reactKids domNodes]
+                                   (do (js/console.log "stop" @moving?)
+                                       (reset! moving? nil)))}
          (doall
           (map-indexed
            (fn [index item]
              ^{:key (:id item)}
              [:div.row
               
-              {:style {:visibility (if (= index @selected-item) :hidden)
+              {:style {:visibility (if (or (= index @selected-item)
+                                           (= index @moving?)) :hidden)
                        ;;:position (if (= index @selected-item) :absolute)
                        ;; if we manually track all the heights, then that means
                        ;; that deletion becomes a constant time operation as we
@@ -101,7 +119,7 @@
                :key (:id item)
                :id (str (:id item))}
               [item-view index item]])
-           @items))]])]))
+           @items))]])])))
 
 (defn item-input
   []
