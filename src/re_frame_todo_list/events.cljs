@@ -52,20 +52,25 @@
 
 (re-frame.core/reg-event-fx
  :lift
- (fn [cofx [_ idx e]]
+ (fn [cofx [_ idx e id on-lift on-drop]]
    (do
      (println "lift")
+     (on-lift)
      (let [top (-> e .-target .getBoundingClientRect .-top)
            offset (- (.-clientY e) top)]
        {:db (assoc (:db cofx) :selected-item idx)
-        :listen-drag 50;offset
-        }))))
+        :listen-drag {:offset 50;offset
+                      :id id
+                      :on-drop on-drop}}))))
 
 (re-frame.core/reg-fx
  :listen-drag
- (fn [offset]
-   (let [drag (fn [e] (re-frame.core/dispatch [:drag e offset]))
-         drop (fn [] (re-frame/dispatch [:drop]))]
+ (fn [m]
+   (let [offset (:offset m)
+         id (:id m)
+         on-drop (:on-drop m)
+         drag (fn [e] (re-frame.core/dispatch [:drag e offset]))
+         drop (fn [] (re-frame/dispatch [:drop id on-drop]))]
      (events/listen js/window EventType.MOUSEMOVE drag)
      (events/listen js/window EventType.MOUSEUP drop)
      (events/listen js/window EventType.MOUSEUP
@@ -125,15 +130,28 @@
                   [[:dispatch [:displace next-idx]]]
                   []))))})))
 
+;; https://stackoverflow.com/questions/41656640/clojure-javascript-interop-multiple-parameters
+
 ;; note: updating the height value below is currently redundant, since the view
 ;; renders the selected item differently than all others; therefore dissoc'ing
 ;; the selected item is sufficient to have the dragged item snap into place
 (re-frame.core/reg-event-db
  :drop
- (fn [db [_]]
-   (let [idx (:selected-item db)]
+ (fn [db [_ id on-drop]]
+   (let [idx (:selected-item db)
+         elem (-> js/document (.getElementById 8)) ]
      (do
-       (println idx)
+       (-> elem
+           (.addEventListener "animationend" on-drop))
+       (-> elem
+           (.animate 
+            (clj->js [{:transform "rotate(0) scale(1)"}
+                      {:transform "rotate(360deg) scale(0)"}])
+            (clj->js {:duration 2000
+                      :iterations 1})))
+       (println "elem: " elem)
+       (println id)
+       (on-drop)
        (-> db
            (assoc-in [:items idx :height] (idx->height idx))
            (dissoc :selected-item))))))

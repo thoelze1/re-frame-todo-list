@@ -29,16 +29,16 @@
   (+ initial (* multiple idx)))
 
 (defn item-view
-  [index item]
+  [index item-str id on-click]
   [:div.row
-   {:style {:margin 10
+   {:id id
+    :style {:margin 10
             :background-color :gray}}
    [:div.col-1
     [:i.fa-solid.fa-ellipsis-vertical
      {:style {:cursor :pointer}
-      :on-mouse-down (fn [e] (do (.preventDefault e)
-                                 (re-frame/dispatch [:lift index e])))}]]
-   [:div.col-10 [:p (:val item)]]
+      :on-mouse-down on-click}]]
+   [:div.col-10 [:p item-str ": " id]]
    [:div.col-1 [:i.fa.fa-trash
                 {:style {:cursor :pointer}
                  :on-click #(re-frame/dispatch [:delete-item index])}]]])
@@ -48,11 +48,26 @@
   []
   (let [items (re-frame/subscribe [::subs/items])
         selected-item (re-frame/subscribe [::subs/selected-item])
-        moving? (reagent/atom nil)]
+        moving? (reagent/atom nil)
+        dropped? (reagent/atom true)]
     (fn
     []
-    [:div
-     [:div {:style {:position :absolute}} "moving? " (str @moving? " " @selected-item)]
+    (let [mk-on-click
+          (fn [index id]
+            (fn [e] (do (.preventDefault e)
+                        (re-frame/dispatch
+                         [:lift index e id
+                          #(reset! dropped? false) ;; this could live in
+                          ;; click-item-callback, but
+                          ;; should really be invoked
+                          ;; with the rest of the lifting
+                          ;; actions
+                          #(reset! dropped? true)]))))]  
+      [:div
+       [:p "moving? " (str @moving?)]
+       [:p "dropped? "  (str @dropped?)]
+       [:p "selected: " (str @selected-item)]
+       [:p {:id 8} "test"]
      (if (= 0 (count @items))
        [:div "You've got nothing to do!"]
        [:div.container
@@ -78,7 +93,26 @@
                          [:div.row {:style {:position :absolute
                                             :top (:height item)
                                             :z-index 1}}
-                          [item-view @selected-item item]]]])]))))
+                          [item-view @selected-item (:val item) (:id item) #()]]]])]))))
+        (cond
+          (and @dropped? @moving?)
+          ;; animate stationary item (because FLIP should still hide it)
+          (and (not @dropped?) @moving?)
+          ;; animate moving item (because FLIP should still hide it)
+          (and @dropped? (not @moving?))
+          ;; everything is stationary: don't animate anything
+          (and (not @dropped?) (not @moving?))
+          ;; animate moving item (because FLIP should still hide it)
+          )
+        (if (and (not @selected-item) (not @dropped?))
+          [:div
+           [:div.row {:style {:flex-wrap "wrap"}}
+            [:div.row {:style {:position :absolute}}
+             [:div.row {:style {:position :absolute
+                                :top (:height (get @items @moving?))
+                                :z-index 1}}
+              (let [item (get @items @moving?)]
+                [item-view @moving? (:val item) (:id item) #()])]]]])
         (if (and (not @selected-item) @moving?)
           [:div
            [:div.row {:style {:flex-wrap "wrap"}}
@@ -86,8 +120,8 @@
              [:div.row {:style {:position :absolute
                                 :top (:height (get @items @moving?))
                                 :z-index 1}}
-              [item-view @selected-item (get @items @moving?)]]]]])
-        
+              (let [item (get @items @moving?)]
+                [item-view @moving? (:val item) (:id item) #()])]]]])
         [flip-move {:duration 500
                     :easing "cubic-bezier(0, 1, 1, 1)"
                     :onStartAll (fn [reactKids domNodes]
@@ -118,8 +152,8 @@
                                      )}
                :key (:id item)
                :id (str (:id item))}
-              [item-view index item]])
-           @items))]])])))
+              [item-view index (:val item) "dummy" (mk-on-click index (:id item))]])
+           @items))]])]))))
 
 (defn item-input
   []
