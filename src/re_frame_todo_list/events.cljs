@@ -143,18 +143,20 @@
  :drop
  (fn [db [_ id on-drop]]
    (let [idx (:selected-item db)
-         elem (-> js/document (.getElementById 8)) ]
+         elem (-> js/document (.getElementById 24)) ]
      (do
-       (goog.dom.setProperties (-> elem
+       (println id)
+       (println elem)
+       (goog.dom.setProperties elem #_(clj->js {:textContent "hi"})
+                               (-> elem
                                    (.animate 
                                     (clj->js [{:transform "rotate(0) scale(1)"}
                                               {:transform "rotate(360deg) scale(0)"}])
                                     (clj->js {:duration 2000
                                               :iterations 1})))
-                               (clj->js {:onfinish #(println "hi")}))
-       
-       (println "elem: " elem)
-       (println id)
+                               (clj->js {:onfinish on-drop}))
+       ;(println "elem: " elem)
+       ;(println id)
        ;;(on-drop)
        (-> db
            (assoc-in [:items idx :height] (idx->height idx))

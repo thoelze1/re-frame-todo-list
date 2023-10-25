@@ -57,12 +57,12 @@
             (fn [e] (do (.preventDefault e)
                         (re-frame/dispatch
                          [:lift index e id
-                          #(reset! dropped? id) ;; this could live in
+                          #(reset! dropped? index) ;; this could live in
                           ;; click-item-callback, but
                           ;; should really be invoked
                           ;; with the rest of the lifting
                           ;; actions
-                          #(reset! dropped? nil)]))))]  
+                          #(reset! dropped? nil)]))))]
       [:div
        [:p "moving? " (str @moving?)]
        [:p "dropped? "  (str @dropped?)]
@@ -109,10 +109,10 @@
            [:div.row {:style {:flex-wrap "wrap"}}
             [:div.row {:style {:position :absolute}}
              [:div.row {:style {:position :absolute
-                                :top (:height (get @items @moving?))
+                                :top (:height (get @items @dropped?))
                                 :z-index 2}}
               (let [item (get @items @dropped?)]
-                [item-view @dropped? (:val item) (:id item) #()])]]]])
+                [item-view @dropped? (str "foo" (:val item)) (str "pfx" (:id item)) #()])]]]])
         (if (and (not @selected-item) @moving?)
           [:div
            [:div.row {:style {:flex-wrap "wrap"}}
@@ -121,12 +121,13 @@
                                 :top (:height (get @items @moving?))
                                 :z-index 1}}
               (let [item (get @items @moving?)]
-                [item-view @moving? (:val item) (:id item) #()])]]]])
+                [item-view @moving? (str "bar" (:val item)) (str "pfx" (:id item)) #()])]]]])
         [flip-move {:duration 500
                     :easing "cubic-bezier(0, 1, 1, 1)"
                     :onStartAll (fn [reactKids domNodes]
                                   (do (js/console.log "start" @moving?)
-                                      (reset! moving? @selected-item)))
+                                      (reset! moving? @selected-item)
+                                      (reset! dropped? @selected-item)))
                     :onFinishAll (fn [reactKids domNodes]
                                    (do (js/console.log "stop" @moving?)
                                        (reset! moving? nil)))}
@@ -137,7 +138,9 @@
              [:div.row
               
               {:style {:visibility (if (or (= index @selected-item)
-                                           (and (not @dropped?) (= index @dropped?))
+                                           (and (not @selected-item)
+                                                @dropped?
+                                                (= index @dropped?))
                                            (= index @moving?)) :hidden)
                        ;;:position (if (= index @selected-item) :absolute)
                        ;; if we manually track all the heights, then that means
@@ -148,12 +151,12 @@
                        ;; the height information in the items list, though we
                        ;; could store it directly in the app-db
                        :top (if (= index @selected-item)
-                                     (:height item)
-                                     0 ;(idx->height index)
-                                     )}
+                              (:height item)
+                              0 ;(idx->height index)
+                              )}
                :key (:id item)
                :id (str (:id item))}
-              [item-view index (:val item) "dummy" (mk-on-click index (:id item))]])
+              [item-view index (:val item) "dummy" (mk-on-click index (str "pfx" (:id item)))]])
            @items))]])]))))
 
 (defn item-input
