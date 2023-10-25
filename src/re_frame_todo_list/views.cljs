@@ -49,7 +49,7 @@
   (let [items (re-frame/subscribe [::subs/items])
         selected-item (re-frame/subscribe [::subs/selected-item])
         moving? (reagent/atom nil)
-        dropped? (reagent/atom true)]
+        dropped? (reagent/atom nil)]
     (fn
     []
     (let [mk-on-click
@@ -57,12 +57,12 @@
             (fn [e] (do (.preventDefault e)
                         (re-frame/dispatch
                          [:lift index e id
-                          #(reset! dropped? false) ;; this could live in
+                          #(reset! dropped? id) ;; this could live in
                           ;; click-item-callback, but
                           ;; should really be invoked
                           ;; with the rest of the lifting
                           ;; actions
-                          #(reset! dropped? true)]))))]  
+                          #(reset! dropped? nil)]))))]  
       [:div
        [:p "moving? " (str @moving?)]
        [:p "dropped? "  (str @dropped?)]
@@ -104,15 +104,15 @@
           (and (not @dropped?) (not @moving?))
           ;; animate moving item (because FLIP should still hide it)
           )
-        (if (and (not @selected-item) (not @dropped?))
+        (if (and (not @selected-item) @dropped?)
           [:div
            [:div.row {:style {:flex-wrap "wrap"}}
             [:div.row {:style {:position :absolute}}
              [:div.row {:style {:position :absolute
                                 :top (:height (get @items @moving?))
-                                :z-index 1}}
-              (let [item (get @items @moving?)]
-                [item-view @moving? (:val item) (:id item) #()])]]]])
+                                :z-index 2}}
+              (let [item (get @items @dropped?)]
+                [item-view @dropped? (:val item) (:id item) #()])]]]])
         (if (and (not @selected-item) @moving?)
           [:div
            [:div.row {:style {:flex-wrap "wrap"}}
@@ -137,6 +137,7 @@
              [:div.row
               
               {:style {:visibility (if (or (= index @selected-item)
+                                           (and (not @dropped?) (= index @dropped?))
                                            (= index @moving?)) :hidden)
                        ;;:position (if (= index @selected-item) :absolute)
                        ;; if we manually track all the heights, then that means

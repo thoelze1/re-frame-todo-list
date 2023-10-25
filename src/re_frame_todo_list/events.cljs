@@ -71,6 +71,10 @@
          on-drop (:on-drop m)
          drag (fn [e] (re-frame.core/dispatch [:drag e offset]))
          drop (fn [] (re-frame/dispatch [:drop id on-drop]))]
+     
+     ;(-> (js/document.getElementById 8)  (.addEventListener "animationend" (fn [] (println "hi"))))
+     ;(goog.dom.setProperties (js/document.getElementById 8) (clj->js {:onmousedown #(println "hi")}))
+     
      (events/listen js/window EventType.MOUSEMOVE drag)
      (events/listen js/window EventType.MOUSEUP drop)
      (events/listen js/window EventType.MOUSEUP
@@ -141,17 +145,17 @@
    (let [idx (:selected-item db)
          elem (-> js/document (.getElementById 8)) ]
      (do
-       (-> elem
-           (.addEventListener "animationend" on-drop))
-       (-> elem
-           (.animate 
-            (clj->js [{:transform "rotate(0) scale(1)"}
-                      {:transform "rotate(360deg) scale(0)"}])
-            (clj->js {:duration 2000
-                      :iterations 1})))
+       (goog.dom.setProperties (-> elem
+                                   (.animate 
+                                    (clj->js [{:transform "rotate(0) scale(1)"}
+                                              {:transform "rotate(360deg) scale(0)"}])
+                                    (clj->js {:duration 2000
+                                              :iterations 1})))
+                               (clj->js {:onfinish #(println "hi")}))
+       
        (println "elem: " elem)
        (println id)
-       (on-drop)
+       ;;(on-drop)
        (-> db
            (assoc-in [:items idx :height] (idx->height idx))
            (dissoc :selected-item))))))
