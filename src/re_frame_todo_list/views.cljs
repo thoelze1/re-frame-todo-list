@@ -92,26 +92,43 @@
 (defn main-panel []
   (let [items (re-frame/subscribe [::subs/items])
         selected-item (re-frame/subscribe [::subs/selected-item])
-        si @selected-item
-        new-item (re-frame/subscribe [::subs/new-item])]
-    ;; Example drag-drop-context (typically wraps your whole app)
-    [drag-drop-context
-     {:onDragStart  #()
-      :onDragUpdate #()
-      :onDragEnd    #()}
-     [:div
-      [droppable {:droppable-id "droppable-1" :type "thing"}
-       (fn [provided snapshot]
-         (reagent/as-element
-          [:div (merge {:ref   (.-innerRef provided)
-                        :class (when (.-isDraggingOver snapshot) :drag-over)}
-                       (js->clj (.-droppableProps provided)))
-           [:h2 "My List - render some draggables inside"
-            [draggable {:draggable-id "draggable-1", :index 0}
-             (fn [provided snapshot]
-               (reagent/as-element
-                [:div (merge {:ref (.-innerRef provided)}
-                             (js->clj (.-draggableProps provided))
-                             (js->clj (.-dragHandleProps provided)))
-                 [:p "Drag me"]]))]]
-           (.-placeholder provided)]))]]]))
+        panel-dnd-id "todo-list-dnd"]
+    [:div
+     [:p "Selected item: " (str @selected-item)] 
+     [item-input]
+     [drag-drop-context
+      {:onDragStart  (fn [result]
+                       (let [index (get-in (js->clj result) ["source" "index"])]
+                         (re-frame/dispatch [:lift index])))
+       :onDragUpdate (fn [result] (println result))
+       :onDragEnd    (fn [result]
+                       (let [r (js->clj result)]
+                         (if (get r "destination")
+                           (let [src (get-in r ["source" "index"])
+                                 dst (get-in r ["destination" "index"])]
+                             (do
+                               (re-frame/dispatch [:reorder src dst])
+                               (re-frame/dispatch [:drop]))))))}
+      [droppable
+       {:droppable-id panel-dnd-id :type "thing"}
+       (let [items @items]
+         (fn [provided snapshot]
+           (reagent/as-element
+            [:div (merge {:ref   (.-innerRef provided)
+                          :class (when (.-isDraggingOver snapshot) :drag-over)}
+                         (js->clj (.-droppableProps provided)))
+             [:h2 "My List - render some draggables inside"
+              (doall
+               (map-indexed
+                (fn [index item]
+                  ^{:key (:id item)}
+                  [:div.row
+                   [draggable {:draggable-id (str (:id item)), :index index}
+                    (fn [provided snapshot]
+                      (reagent/as-element
+                       [:div (merge {:ref (.-innerRef provided)}
+                                    (js->clj (.-draggableProps provided))
+                                    (js->clj (.-dragHandleProps provided)))
+                        [:p (:val item)]]))]])
+                items))]
+             (.-placeholder provided)])))]]]))
