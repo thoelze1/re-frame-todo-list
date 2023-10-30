@@ -77,9 +77,10 @@
         (if @selected-item
           (do #_(println "item: " (str (js/document.getElementById (str @selected-item))))
               (let [h (-> js/document
-                          (.getElementById (str (get-in @items [@selected-item :id])))
+                          (.getElementById (str "pfx" (get-in @items [@selected-item :id])))
                           (.getBoundingClientRect)
                           (.-height))]
+                (goog)
                 (do #_(println (str h))
                     [:div 
                      (let [item (get @items @selected-item)]
@@ -112,7 +113,7 @@
                                 :top (:height (get @items @dropped?))
                                 :z-index 2}}
               (let [item (get @items @dropped?)]
-                [item-view @dropped? (str "foo" (:val item)) (str "pfx" (:id item)) #()])]]]])
+                [item-view @dropped? (str "foo" (:val item)) (:id item) #()])]]]])
         (if (and (not @selected-item) @moving?)
           [:div
            [:div.row {:style {:flex-wrap "wrap"}}
@@ -121,7 +122,7 @@
                                 :top (:height (get @items @moving?))
                                 :z-index 1}}
               (let [item (get @items @moving?)]
-                [item-view @moving? (str "bar" (:val item)) (str "pfx" (:id item)) #()])]]]])
+                [item-view @moving? (str "bar" (:val item)) (:id item) #()])]]]])
         [flip-move {:duration 500
                     :easing "cubic-bezier(0, 1, 1, 1)"
                     :onStartAll (fn [reactKids domNodes]
@@ -137,11 +138,12 @@
              ^{:key (:id item)}
              [:div.row
               
-              {:style {:visibility (if (or (= index @selected-item)
-                                           (and (not @selected-item)
-                                                @dropped?
-                                                (= index @dropped?))
-                                           (= index @moving?)) :hidden)
+              {:style {;:visibility
+                       #_(if (or (= index @selected-item)
+                                 (and (not @selected-item)
+                                      @dropped?
+                                      (= index @dropped?))
+                                 (= index @moving?)) :hidden)
                        ;;:position (if (= index @selected-item) :absolute)
                        ;; if we manually track all the heights, then that means
                        ;; that deletion becomes a constant time operation as we
@@ -150,13 +152,13 @@
                        ;; dragged item and the displaced item. For now we'll store
                        ;; the height information in the items list, though we
                        ;; could store it directly in the app-db
-                       :top (if (= index @selected-item)
-                              (:height item)
-                              0 ;(idx->height index)
-                              )}
+                       :top (if (= index 22) 20 0) #_(if (= index @selected-item)
+                                                       (:height item)
+                                                       0       ;(idx->height index)
+                                                       )}
                :key (:id item)
-               :id (str (:id item))}
-              [item-view index (:val item) "dummy" (mk-on-click index (str "pfx" (:id item)))]])
+               :id (str "pfx" (:id item))}
+              [item-view index (:val item) "dummy" (mk-on-click index (:id item))]])
            @items))]])]))))
 
 (defn item-input

@@ -143,7 +143,7 @@
  :drop
  (fn [db [_ id on-drop]]
    (let [idx (:selected-item db)
-         elem (-> js/document (.getElementById 24)) ]
+         elem (-> js/document (.getElementById id)) ]
      (do
        (println id)
        (println elem)
