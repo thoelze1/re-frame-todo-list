@@ -8,6 +8,23 @@ A [re-frame](https://github.com/day8/re-frame) to-do list manager.
 $ npm install
 $ npm run watch
 ```
+## `shadow-cljs` dependencies
+
+By default, `shadow-cljs` can access npm packages directly. This is preferred, but in case you require a CLJS library that itself uses CLJSJS packages, shadow-cljs just needs a shim file. The `shadow-cljsjs` library provides many of these shims.
+
+If `:require`s aren't working, try
+
+```
+$ shadow-cljs browser-repl
+```
+
+or
+
+```
+$ shadow-cljs node-repl
+```
+
+Interop example: https://github.com/iku000888/reagent-shadow-cljs-vis-js/blob/master/src/my/dev.cljs
 
 ## Getting Started
 

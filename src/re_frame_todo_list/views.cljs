@@ -88,6 +88,7 @@
        :value "Add item"
        :on-click add-item}]]))
 
+;; https://github.com/atlassian/react-beautiful-dnd/issues/427
 (defn main-panel []
   (let [items (re-frame/subscribe [::subs/items])
         selected-item (re-frame/subscribe [::subs/selected-item])
@@ -101,14 +102,16 @@
      [:div
       [droppable {:droppable-id "droppable-1" :type "thing"}
        (fn [provided snapshot]
-         (reagent/as-element [:div (merge {:ref   (.-innerRef provided)
-                                     :class (when (.-isDraggingOver snapshot) :drag-over)}
-                                    (js->clj (.-droppableProps provided)))
-                        [:h2 "My List - render some draggables inside"
-                         [draggable {:draggable-id "draggable-1", :index 0}
-                          (fn [provided snapshot]
-                            (reagent/as-element [:div (merge {:ref (.-innerRef provided)}
-                                                       (js->clj (.-draggableProps provided))
-                                                       (js->clj (.-dragHandleProps provided)))
-                                           [:p "Drag me"]]))]]
-                        (.-placeholder provided)]))]]]))
+         (reagent/as-element
+          [:div (merge {:ref   (.-innerRef provided)
+                        :class (when (.-isDraggingOver snapshot) :drag-over)}
+                       (js->clj (.-droppableProps provided)))
+           [:h2 "My List - render some draggables inside"
+            [draggable {:draggable-id "draggable-1", :index 0}
+             (fn [provided snapshot]
+               (reagent/as-element
+                [:div (merge {:ref (.-innerRef provided)}
+                             (js->clj (.-draggableProps provided))
+                             (js->clj (.-dragHandleProps provided)))
+                 [:p "Drag me"]]))]]
+           (.-placeholder provided)]))]]]))
