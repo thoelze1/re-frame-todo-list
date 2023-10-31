@@ -53,6 +53,11 @@
     (assoc db :new-item new-str)))
 
 (re-frame.core/reg-event-db
+  :edit-item
+  (fn [db [_ item-idx new-str]]
+    (assoc-in db [:items item-idx :val] new-str)))
+
+(re-frame.core/reg-event-db
  :reorder
  (fn [db [_ idx1 idx2]]
    (update db :items vec-reorder idx1 idx2)))
@@ -67,7 +72,6 @@
  (fn [db [_]]
    (assoc db :selected-item nil)))
 
-;;; DEPRECATED
 (defn deep-merge [v & vs]
   (letfn [(rec-merge [v1 v2]
                      (if (and (map? v1) (map? v2))

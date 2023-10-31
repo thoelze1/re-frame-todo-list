@@ -15,8 +15,8 @@
 ;; visual abstraction. therefore the height related information should live in
 ;; the view context, and perhaps passed as necessary to the events context
 
-; https://stackoverflow.com/questions/33446913/reagent-react-clojurescript-warning-every-element-in-a-seq-should-have-a-unique
-; https://stackoverflow.com/questions/24239144/js-console-log-in-clojurescript
+;; https://stackoverflow.com/questions/33446913/reagent-react-clojurescript-warning-every-element-in-a-seq-should-have-a-unique
+;; https://stackoverflow.com/questions/24239144/js-console-log-in-clojurescript
 
 (def drag-drop-context (reagent/adapt-react-class react-beautiful-dnd/DragDropContext))
 (def droppable (reagent/adapt-react-class react-beautiful-dnd/Droppable))
@@ -25,14 +25,23 @@
 (defn item-view
   [index item]
   [:div.row
-   {:style {:margin 10
-            :background-color :gray}}
+   {:style {:background-color :gray}}
    [:div.col-1
     [:i.fa-solid.fa-ellipsis-vertical
      {:style {:cursor :pointer}
       :on-mouse-down (fn [e] (do (.preventDefault e)
                                  (re-frame/dispatch [:lift index e])))}]]
-   [:div.col-10 [:p (:val item)]]
+   [:div.col-10
+    [:input
+     {:type "text"
+      :value (:val item)
+      ;; perhaps this :on-change should filter newline
+      :on-change (fn [e]
+                   (re-frame/dispatch [:edit-item index (-> e
+                                                            .-target
+                                                            .-value)]))
+      :on-key-press #();(fn [e] (if (= 13 (.-charCode e)) (add-item) ))
+      }]]
    [:div.col-1 [:i.fa.fa-trash
                 {:style {:cursor :pointer}
                  :on-click #(re-frame/dispatch [:delete-item index])}]]])
@@ -42,30 +51,45 @@
   []
   (let [items (re-frame/subscribe [::subs/items])
         selected-item (re-frame/subscribe [::subs/selected-item])
-        moving? (reagent/atom nil)]
-    (fn
-    []
-    [:div
-     [:div {:style {:position :absolute}} "moving? " (str @moving? " " @selected-item)]
-     (if (= 0 (count @items))
-       [:div "You've got nothing to do!"]
-       [:div.container
-        ;; Example droppable (wraps one of your lists)
-        ;; Note use of r/as-element and js->clj on droppableProps
-        #_[droppable {:droppable-id "droppable-1" :type "thing"}
-         (fn [provided snapshot]
-           (reagent/as-element [:div (merge {:ref   (.-innerRef provided)
-                                             :class (when (.-isDraggingOver snapshot) :drag-over)}
-                                            (js->clj (.-droppableProps provided)))
-                                [:h2 "My List - render some draggables inside"]
-                                (.-placeholder provided)]))]
-                                        ; Example draggable
-        #_[draggable {:draggable-id "draggable-1", :index 0}
-         (fn [provided snapshot]
-           (reagent/as-element [:div (merge {:ref (.-innerRef provided)}
-                                            (js->clj (.-draggableProps provided))
-                                            (js->clj (.-dragHandleProps provided)))
-                                [:p "Drag me"]]))]])])))
+        moving? (reagent/atom nil)
+        panel-dnd-id "todo-list-dnd"]
+    [drag-drop-context
+     {:onDragStart  (fn [result]
+                      (let [index (get-in (js->clj result) ["source" "index"])]
+                        (re-frame/dispatch [:lift index])))
+      :onDragUpdate (fn [result] (println result))
+      :onDragEnd    (fn [result]
+                      (let [r (js->clj result)]
+                        (if (get r "destination")
+                          (let [src (get-in r ["source" "index"])
+                                dst (get-in r ["destination" "index"])]
+                            (do
+                              (re-frame/dispatch [:reorder src dst])
+                              (re-frame/dispatch [:drop]))))))}
+     [droppable
+      {:droppable-id panel-dnd-id :type "thing"}
+      (let [items @items]
+        (fn [provided snapshot]
+          (reagent/as-element
+           [:div (merge {:ref   (.-innerRef provided)
+                         :class (when (.-isDraggingOver snapshot) :drag-over)}
+                        (js->clj (.-droppableProps provided)))
+            [:h2 "My List - render some draggables inside"
+             (doall
+              (map-indexed
+               (fn [index item]
+                 ^{:key (:id item)}
+                 [:div.row
+                  {:style {:margin 10}}
+                  [draggable {:draggable-id (str (:id item)), :index index}
+                   (fn [provided snapshot]
+                     (reagent/as-element
+                      [:div (merge {:ref (.-innerRef provided)}
+                                   (js->clj (.-draggableProps provided))
+                                   (js->clj (.-dragHandleProps provided)))
+                       [item-view index item]]))]])
+               items))]
+            (.-placeholder provided)])))]]))
 
 (defn item-input
   []
@@ -81,8 +105,7 @@
        :value @new-item
        ;; perhaps this :on-change should filter newline
        :on-change touch
-       :on-key-press (fn [e] (if (= 13 (.-charCode e)) (add-item) ))
-       }]
+       :on-key-press (fn [e] (if (= 13 (.-charCode e)) (add-item) ))}]
      [:input
       {:type "button"
        :value "Add item"
@@ -90,45 +113,6 @@
 
 ;; https://github.com/atlassian/react-beautiful-dnd/issues/427
 (defn main-panel []
-  (let [items (re-frame/subscribe [::subs/items])
-        selected-item (re-frame/subscribe [::subs/selected-item])
-        panel-dnd-id "todo-list-dnd"]
-    [:div
-     [:p "Selected item: " (str @selected-item)] 
-     [item-input]
-     [drag-drop-context
-      {:onDragStart  (fn [result]
-                       (let [index (get-in (js->clj result) ["source" "index"])]
-                         (re-frame/dispatch [:lift index])))
-       :onDragUpdate (fn [result] (println result))
-       :onDragEnd    (fn [result]
-                       (let [r (js->clj result)]
-                         (if (get r "destination")
-                           (let [src (get-in r ["source" "index"])
-                                 dst (get-in r ["destination" "index"])]
-                             (do
-                               (re-frame/dispatch [:reorder src dst])
-                               (re-frame/dispatch [:drop]))))))}
-      [droppable
-       {:droppable-id panel-dnd-id :type "thing"}
-       (let [items @items]
-         (fn [provided snapshot]
-           (reagent/as-element
-            [:div (merge {:ref   (.-innerRef provided)
-                          :class (when (.-isDraggingOver snapshot) :drag-over)}
-                         (js->clj (.-droppableProps provided)))
-             [:h2 "My List - render some draggables inside"
-              (doall
-               (map-indexed
-                (fn [index item]
-                  ^{:key (:id item)}
-                  [:div.row
-                   [draggable {:draggable-id (str (:id item)), :index index}
-                    (fn [provided snapshot]
-                      (reagent/as-element
-                       [:div (merge {:ref (.-innerRef provided)}
-                                    (js->clj (.-draggableProps provided))
-                                    (js->clj (.-dragHandleProps provided)))
-                        [:p (:val item)]]))]])
-                items))]
-             (.-placeholder provided)])))]]]))
+  [:div
+   [item-input]
+   [items-view]])
