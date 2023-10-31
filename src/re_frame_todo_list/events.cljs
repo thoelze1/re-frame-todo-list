@@ -22,7 +22,8 @@
      (do (swap! id inc)
          (let [idx (count (:items db))]
            (update db :items #(conj % {:val item-str
-                                       :id @id})))))))
+                                       :id @id
+                                       :done {}})))))))
 
 (defn vec-remove
   "remove elem in coll"
@@ -54,6 +55,26 @@
 
 (re-frame.core/reg-event-db
   :edit-item
+  (fn [db [_ item-idx new-str]]
+    (assoc-in db [:items item-idx :val] new-str)))
+
+(re-frame.core/reg-event-db
+  :mark-item-date-yes
+  (fn [db [_ item-idx date]]
+    (assoc-in db [:items item-idx :done date] true)))
+
+(re-frame.core/reg-event-db
+  :mark-item-date-no
+  (fn [db [_ item-idx date]]
+    (assoc-in db [:items item-idx :done date] false)))
+
+(re-frame.core/reg-event-db
+  :unmark-item-date
+  (fn [db [_ item-idx date]]
+    (assoc-in db [:items item-idx :done date] nil)))
+
+(re-frame.core/reg-event-db
+  :complete-item
   (fn [db [_ item-idx new-str]]
     (assoc-in db [:items item-idx :val] new-str)))
 

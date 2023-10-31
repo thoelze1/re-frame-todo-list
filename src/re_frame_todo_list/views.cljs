@@ -31,7 +31,7 @@
      {:style {:cursor :pointer}
       :on-mouse-down (fn [e] (do (.preventDefault e)
                                  (re-frame/dispatch [:lift index e])))}]]
-   [:div.col-10
+   [:div.col-5
     (let [id (str "super-unique-string" (:id item))]
       [:input
        {:type "text"
@@ -42,6 +42,21 @@
         :on-change #(re-frame/dispatch [:edit-item index (-> % .-target .-value)])
         :on-key-press #(if (= 13 (.-charCode %))
                          (.blur (.getElementById js/document id)))}])]
+   (doall
+    (map
+     (fn [i]
+       (let [date (keyword (.toDateString (js/Date. (+ (js/Date.now) (* 1000 60 60 24 i)))))]
+         [:div.col-1
+          {:style {:cursor :pointer}
+           :key (str i "specisl" index)
+           :on-click #(do (.preventDefault %)
+                          (re-frame/dispatch [:mark-item-date-yes index date]))}
+          (let [status (get-in item [:done date])
+                elements {true [:i.fa.fa-check]
+                          false [:i.fa.fa-x]
+                          nil [:i.fa.fa-question]}]
+            (get elements status))]))
+     (range 0 -5 -1)))
    [:div.col-1 [:i.fa.fa-trash
                 {:style {:cursor :pointer}
                  :on-click #(re-frame/dispatch [:delete-item index])}]]])
@@ -80,7 +95,7 @@
                (fn [index item]
                  ^{:key (:id item)}
                  [:div.row
-                  {:style {:margin 10}}
+                  ;;{:style {:margin 10}}
                   [draggable {:draggable-id (str (:id item)), :index index}
                    (fn [provided snapshot]
                      (reagent/as-element
