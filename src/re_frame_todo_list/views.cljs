@@ -32,16 +32,16 @@
       :on-mouse-down (fn [e] (do (.preventDefault e)
                                  (re-frame/dispatch [:lift index e])))}]]
    [:div.col-10
-    [:input
-     {:type "text"
-      :value (:val item)
-      ;; perhaps this :on-change should filter newline
-      :on-change (fn [e]
-                   (re-frame/dispatch [:edit-item index (-> e
-                                                            .-target
-                                                            .-value)]))
-      :on-key-press #();(fn [e] (if (= 13 (.-charCode e)) (add-item) ))
-      }]]
+    (let [id (str "super-unique-string" (:id item))]
+      [:input
+       {:type "text"
+        :id id
+        :style {:background-color :gray}
+        :value (:val item)
+        ;; perhaps this :on-change should filter newline
+        :on-change #(re-frame/dispatch [:edit-item index (-> % .-target .-value)])
+        :on-key-press #(if (= 13 (.-charCode %))
+                         (.blur (.getElementById js/document id)))}])]
    [:div.col-1 [:i.fa.fa-trash
                 {:style {:cursor :pointer}
                  :on-click #(re-frame/dispatch [:delete-item index])}]]])
