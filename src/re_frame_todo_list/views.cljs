@@ -6,6 +6,7 @@
    [re-com.slider :refer [slider-parts-desc slider-args-desc]]
    [reagent.core  :as    reagent]
    ["react-beautiful-dnd" :as react-beautiful-dnd]
+   ["recharts" :as recharts]
    [re-frame-todo-list.macros :as macros]
    ))
 
@@ -21,6 +22,9 @@
 (def drag-drop-context (reagent/adapt-react-class react-beautiful-dnd/DragDropContext))
 (def droppable (reagent/adapt-react-class react-beautiful-dnd/Droppable))
 (def draggable (reagent/adapt-react-class react-beautiful-dnd/Draggable))
+
+(def line-chart (reagent/adapt-react-class recharts/LineChart))
+(def cartesian-grid (reagent/adapt-react-class recharts/CartesianGrid))
 
 (defn item-view
   [index item]
@@ -60,6 +64,13 @@
    [:div.col-1 [:i.fa.fa-trash
                 {:style {:cursor :pointer}
                  :on-click #(re-frame/dispatch [:delete-item index])}]]])
+
+(defn chart-view
+  []
+  [line-chart
+   {:height 300 :width 500}
+   [cartesian-grid
+    {:stroke-dash-array "3 3"}]])
 
 ;; maybe height should be a component-local reagent atom
 (defn items-view
@@ -130,4 +141,5 @@
 (defn main-panel []
   [:div
    [item-input]
-   [items-view]])
+   [items-view]
+   [chart-view]])
