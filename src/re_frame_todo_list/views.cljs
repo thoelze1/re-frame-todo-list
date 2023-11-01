@@ -67,6 +67,20 @@
      {:style {:cursor :pointer}
       :on-click #(re-frame/dispatch [:delete-item index])}]]])
 
+(defn dates
+  []
+  [:div.row
+   [:div.col-6]
+   (doall
+    (map
+     (fn [i]
+       (let [date (keyword (.toDateString (js/Date. (+ (js/Date.now) (* 1000 60 60 24 i)))))]
+         [:div.col.align-self-center
+          [:div.text-center
+           date]]))
+     (range 0 -5 -1)))
+   [:div.col]])
+
 (defn chart-view
   []
   [line-chart
@@ -90,6 +104,7 @@
   []
   [:p.text-center.text-white.text-3xl.font-mono.m-2 "Your Habits"])
 
+
 ;; maybe height should be a component-local reagent atom
 (defn items-view
   []
@@ -99,6 +114,7 @@
         panel-dnd-id "todo-list-dnd"]
     [:div
      [items-header]
+     [dates]
      [drag-drop-context
       {:onDragStart  (fn [result]
                        (let [index (get-in (js->clj result) ["source" "index"])]
