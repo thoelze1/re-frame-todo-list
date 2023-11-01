@@ -25,22 +25,17 @@
 
 (def line-chart (reagent/adapt-react-class recharts/LineChart))
 (def cartesian-grid (reagent/adapt-react-class recharts/CartesianGrid))
+(def xaxis (reagent/adapt-react-class recharts/XAxis))
+(def yaxis (reagent/adapt-react-class recharts/YAxis))
 
 (defn item-view
   [index item]
-  [:div.row
-   {:style {:background-color :gray}}
-   [:div.col-1
-    [:i.fa-solid.fa-ellipsis-vertical
-     {:style {:cursor :pointer}
-      :on-mouse-down (fn [e] (do (.preventDefault e)
-                                 (re-frame/dispatch [:lift index e])))}]]
-   [:div.col-5
+  [:div.row.rounded.bg-cyan-300.p-1
+   [:div.col-6.p-0.bg-cyan-300
     (let [id (str "super-unique-string" (:id item))]
-      [:input
+      [:input.w-100.rounded.p-1.bg-cyan-200
        {:type "text"
         :id id
-        :style {:background-color :gray}
         :value (:val item)
         ;; perhaps this :on-change should filter newline
         :on-change #(re-frame/dispatch [:edit-item index (-> % .-target .-value)])
@@ -50,7 +45,7 @@
     (map
      (fn [i]
        (let [date (keyword (.toDateString (js/Date. (+ (js/Date.now) (* 1000 60 60 24 i)))))]
-         [:div.col-1
+         [:div.col
           {:style {:cursor :pointer}
            :key (str i "specisl" index)
            :on-click #(do (.preventDefault %)
@@ -61,7 +56,7 @@
                           nil [:i.fa.fa-question]}]
             (get elements status))]))
      (range 0 -5 -1)))
-   [:div.col-1 [:i.fa.fa-trash
+   [:div.col [:i.fa.fa-trash
                 {:style {:cursor :pointer}
                  :on-click #(re-frame/dispatch [:delete-item index])}]]])
 
@@ -70,7 +65,13 @@
   [line-chart
    {:height 300 :width 500}
    [cartesian-grid
-    {:stroke-dash-array "3 3"}]])
+    {:stroke-dash-array "3 3"}]
+   [xaxis]
+   [yaxis]])
+
+(defn items-header
+  []
+  [:h2.text-center.text-white "Your Habits"])
 
 ;; maybe height should be a component-local reagent atom
 (defn items-view
@@ -79,43 +80,45 @@
         selected-item (re-frame/subscribe [::subs/selected-item])
         moving? (reagent/atom nil)
         panel-dnd-id "todo-list-dnd"]
-    [drag-drop-context
-     {:onDragStart  (fn [result]
-                      (let [index (get-in (js->clj result) ["source" "index"])]
-                        (re-frame/dispatch [:lift index])))
-      :onDragUpdate (fn [result] (println result))
-      :onDragEnd    (fn [result]
-                      (let [r (js->clj result)]
-                        (if (get r "destination")
-                          (let [src (get-in r ["source" "index"])
-                                dst (get-in r ["destination" "index"])]
-                            (do
-                              (re-frame/dispatch [:reorder src dst])
-                              (re-frame/dispatch [:drop]))))))}
-     [droppable
-      {:droppable-id panel-dnd-id :type "thing"}
-      (let [items @items]
-        (fn [provided snapshot]
-          (reagent/as-element
-           [:div (merge {:ref   (.-innerRef provided)
-                         :class (when (.-isDraggingOver snapshot) :drag-over)}
-                        (js->clj (.-droppableProps provided)))
-            [:h2 "My List - render some draggables inside"
+    [:div
+     [items-header]
+     [drag-drop-context
+      {:onDragStart  (fn [result]
+                       (let [index (get-in (js->clj result) ["source" "index"])]
+                         (re-frame/dispatch [:lift index])))
+       :onDragUpdate (fn [result] (println result))
+       :onDragEnd    (fn [result]
+                       (let [r (js->clj result)]
+                         (if (get r "destination")
+                           (let [src (get-in r ["source" "index"])
+                                 dst (get-in r ["destination" "index"])]
+                             (do
+                               (re-frame/dispatch [:reorder src dst])
+                               (re-frame/dispatch [:drop]))))))}
+      [droppable
+       {:droppable-id panel-dnd-id :type "thing"}
+       (let [items @items]
+         (fn [provided snapshot]
+           (reagent/as-element
+            [:div (merge {:ref   (.-innerRef provided)
+                          :class (when (.-isDraggingOver snapshot) :drag-over)}
+                         (js->clj (.-droppableProps provided)))
              (doall
               (map-indexed
                (fn [index item]
                  ^{:key (:id item)}
-                 [:div.row
-                  ;;{:style {:margin 10}}
-                  [draggable {:draggable-id (str (:id item)), :index index}
-                   (fn [provided snapshot]
-                     (reagent/as-element
-                      [:div (merge {:ref (.-innerRef provided)}
-                                   (js->clj (.-draggableProps provided))
-                                   (js->clj (.-dragHandleProps provided)))
-                       [item-view index item]]))]])
-               items))]
-            (.-placeholder provided)])))]]))
+                 [:div.container
+                  [:div.row
+                   ;;{:style {:margin 10}}
+                   [draggable {:draggable-id (str (:id item)), :index index}
+                    (fn [provided snapshot]
+                      (reagent/as-element
+                       [:div.mb-2 (merge {:ref (.-innerRef provided)}
+                                         (js->clj (.-draggableProps provided))
+                                         (js->clj (.-dragHandleProps provided)))
+                        [item-view index item]]))]]])
+               items))
+             (.-placeholder provided)])))]]]))
 
 (defn item-input
   []
@@ -139,7 +142,8 @@
 
 ;; https://github.com/atlassian/react-beautiful-dnd/issues/427
 (defn main-panel []
-  [:div
-   [item-input]
-   [items-view]
-   [chart-view]])
+  [:div.min-vh-100.bg-info.overflow-auto
+   [:div.min-vh-100.m-4
+    [item-input]
+    [items-view]
+    [chart-view]]])
