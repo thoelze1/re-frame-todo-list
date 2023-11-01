@@ -27,51 +27,68 @@
 (def cartesian-grid (reagent/adapt-react-class recharts/CartesianGrid))
 (def xaxis (reagent/adapt-react-class recharts/XAxis))
 (def yaxis (reagent/adapt-react-class recharts/YAxis))
+(def rechart-line (reagent/adapt-react-class recharts/Line))
 
 (defn item-view
   [index item]
   [:div.row.rounded.bg-cyan-300.p-1
    [:div.col-6.p-0.bg-cyan-300
     (let [id (str "super-unique-string" (:id item))]
-      [:input.w-100.rounded.p-1.bg-cyan-200
-       {:type "text"
-        :id id
-        :value (:val item)
-        ;; perhaps this :on-change should filter newline
-        :on-change #(re-frame/dispatch [:edit-item index (-> % .-target .-value)])
-        :on-key-press #(if (= 13 (.-charCode %))
-                         (.blur (.getElementById js/document id)))}])]
+      ;; the second child of the flex container needs padding. possibly relevant:
+      ;; https://stackoverflow.com/questions/23717953/padding-bottom-top-in-flexbox-layout
+      [:div.flex.items-center
+       [:i.fa-solid.fa-ellipsis-vertical.px-2]
+       [:input.w-100.rounded.pl-2.pt-1.pb-1.pr-1.bg-cyan-200
+        {:type "text"
+         :id id
+         :value (:val item)
+         ;; perhaps this :on-change should filter newline
+         :on-change #(re-frame/dispatch [:edit-item index (-> % .-target .-value)])
+         :on-key-press #(if (= 13 (.-charCode %))
+                          (.blur (.getElementById js/document id)))}]])]
    (doall
     (map
      (fn [i]
        (let [date (keyword (.toDateString (js/Date. (+ (js/Date.now) (* 1000 60 60 24 i)))))]
-         [:div.col
+         [:div.col.align-self-center
           {:style {:cursor :pointer}
            :key (str i "specisl" index)
            :on-click #(do (.preventDefault %)
                           (re-frame/dispatch [:mark-item-date-yes index date]))}
-          (let [status (get-in item [:done date])
-                elements {true [:i.fa.fa-check]
-                          false [:i.fa.fa-x]
-                          nil [:i.fa.fa-question]}]
-            (get elements status))]))
+          [:div.text-center
+           (let [status (get-in item [:done date])]
+             (cond
+               (= nil status) [:i.fa.fa-question-circle.text-cyan-200]
+               (= true status) [:i.fa.fa-check.text-emerald-200]
+               (= false status) [:i.fa.fa-x.text-red-200]))]]))
      (range 0 -5 -1)))
-   [:div.col [:i.fa.fa-trash
-                {:style {:cursor :pointer}
-                 :on-click #(re-frame/dispatch [:delete-item index])}]]])
+   [:div.col.align-self-center.text-center
+    [:i.fa.fa-trash.text-center.text-red-900
+     {:style {:cursor :pointer}
+      :on-click #(re-frame/dispatch [:delete-item index])}]]])
 
 (defn chart-view
   []
   [line-chart
-   {:height 300 :width 500}
+   {:height 300 :width 500 :data (clj->js '({:name "test"
+                                             :amount 10}
+                                            {:name "test2"
+                                             :amount 5}
+                                            {:name "test3"
+                                             :amount 6}
+                                            {:name "test4"
+                                             :amount 8}))}
+   ;; why oh why do the props to recharts need to be camelcase? the props for
+   ;; rbd are in kebab case...
    [cartesian-grid
-    {:stroke-dash-array "3 3"}]
-   [xaxis]
-   [yaxis]])
+    {:strokeDasharray "3 3"}]
+   [xaxis {:dataKey "name"}]
+   [yaxis]
+   [rechart-line {:type "monotone" :dataKey (clj->js :amount) }]])
 
 (defn items-header
   []
-  [:h2.text-center.text-white "Your Habits"])
+  [:p.text-center.text-white.text-3xl.font-mono.m-2 "Your Habits"])
 
 ;; maybe height should be a component-local reagent atom
 (defn items-view
@@ -113,6 +130,7 @@
                    [draggable {:draggable-id (str (:id item)), :index index}
                     (fn [provided snapshot]
                       (reagent/as-element
+                       ;; https://github.com/atlassian/react-beautiful-dnd/issues/1855
                        [:div.mb-2 (merge {:ref (.-innerRef provided)}
                                          (js->clj (.-draggableProps provided))
                                          (js->clj (.-dragHandleProps provided)))
@@ -142,7 +160,7 @@
 
 ;; https://github.com/atlassian/react-beautiful-dnd/issues/427
 (defn main-panel []
-  [:div.min-vh-100.bg-info.overflow-auto
+  [:div.min-vh-100.bg-cyan-400.overflow-auto
    [:div.min-vh-100.m-4
     [item-input]
     [items-view]
