@@ -7,6 +7,7 @@
    [reagent.core  :as    reagent]
    ["react-beautiful-dnd" :as react-beautiful-dnd]
    ["recharts" :as recharts]
+   ["react-datepicker$default" :as DatePicker]
    [re-frame-todo-list.macros :as macros]
    ))
 
@@ -28,6 +29,8 @@
 (def xaxis (reagent/adapt-react-class recharts/XAxis))
 (def yaxis (reagent/adapt-react-class recharts/YAxis))
 (def rechart-line (reagent/adapt-react-class recharts/Line))
+
+(def datepicker (reagent/adapt-react-class DatePicker))
 
 (defn item-view
   [index item]
@@ -174,10 +177,19 @@
        :value "Add item"
        :on-click add-item}]]))
 
+
+(defn sleep-view
+  []
+  [:p "hi"]
+  [datepicker])
+
 ;; https://github.com/atlassian/react-beautiful-dnd/issues/427
 (defn main-panel []
   [:div.min-vh-100.bg-cyan-400.overflow-auto
+   ;; stylesheet link must be here, not in other component
+   [:link {:rel "stylesheet" :href "react-datepicker.css"}]
    [:div.min-vh-100.m-4
     [item-input]
     [items-view]
+    [sleep-view]
     [chart-view]]])

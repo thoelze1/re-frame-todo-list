@@ -8,8 +8,9 @@
  [[reagent "1.1.1"]
   [re-frame "1.3.0"]
   [re-com "2.13.2"]
-  [react-beautiful-dnd "13.1.1"]
-  [recharts "2.9.1"]
+  ;[react-beautiful-dnd "13.1.1"]
+  ;[recharts "2.9.1"]
+  ;[react-datepicker "4.21.0"]
   [binaryage/devtools "1.0.6"]]
 
  :dev-http

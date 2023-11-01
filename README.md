@@ -24,6 +24,15 @@ or
 $ shadow-cljs node-repl
 ```
 
+## CSS
+
+Note: I have not yet chosed a CSS build system, so certain files are hard copied from their node package to `resources/` (`react-datepicker`, for one). I feel this is a problem best left until deployment.
+
+Importing CSS from `npm` modules is unsupported in `shadow-cljs`:
+https://github.com/thheller/shadow-cljs/issues/353
+
+The author recommends using `SASS`.
+
 Interop example: https://github.com/iku000888/reagent-shadow-cljs-vis-js/blob/master/src/my/dev.cljs
 
 ## Getting Started
