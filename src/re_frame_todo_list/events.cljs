@@ -35,9 +35,9 @@
                       (do
                         (println "f: " (str f) ", to: " (str to) ", recur: " (> to midnight))
                         (if (> to midnight)
-                          (recur midnight (conj m {:name (.toDateString f)
+                          (recur midnight (conj m {:name (.toDateString (js/Date. f))
                                                    :time-ms (- midnight f)}))
-                          (conj m {:name (.toDateString f)
+                          (conj m {:name (.toDateString (js/Date. f))
                                    :time-ms (- to f)})))))))
           []
           sleep-history))
