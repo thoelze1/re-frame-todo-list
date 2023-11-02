@@ -25,6 +25,32 @@
                                        :id @id
                                        :done {}})))))))
 
+(defn sleep-history->sleep-data
+  [sleep-history]
+  (reduce (fn [out [_ [from to]]]
+            (into out
+                  (loop [f from
+                         m []]
+                    (let [midnight (.setHours (js/Date. f) 24 0 0 0)]
+                      (do
+                        (println "f: " (str f) ", to: " (str to) ", recur: " (> to midnight))
+                        (if (> to midnight)
+                          (recur midnight (conj m {:name (.toDateString f)
+                                                   :time-ms (- midnight f)}))
+                          (conj m {:name (.toDateString f)
+                                   :time-ms (- to f)})))))))
+          []
+          sleep-history))
+
+(re-frame.core/reg-event-db
+ :add-sleep-interval
+ (fn [db [_ from to]]
+   (let [new (conj (:sleep-history db) {(random-uuid) [from to]})]
+     (-> db
+         (assoc :sleep-history new)
+         (assoc :sleep-data (sleep-history->sleep-data new))
+         ))))
+
 (defn vec-remove
   "remove elem in coll"
   [coll pos]

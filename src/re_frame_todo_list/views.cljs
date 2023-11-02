@@ -86,22 +86,17 @@
 
 (defn chart-view
   []
-  [line-chart
-   {:height 300 :width 500 :data (clj->js '({:name "test"
-                                             :amount 10}
-                                            {:name "test2"
-                                             :amount 5}
-                                            {:name "test3"
-                                             :amount 6}
-                                            {:name "test4"
-                                             :amount 8}))}
-   ;; why oh why do the props to recharts need to be camelcase? the props for
-   ;; rbd are in kebab case...
-   [cartesian-grid
-    {:strokeDasharray "3 3"}]
-   [xaxis {:dataKey "name"}]
-   [yaxis]
-   [rechart-line {:type "monotone" :dataKey (clj->js :amount) }]])
+  (let [data (re-frame/subscribe [::subs/sleep-data])]
+    (fn []
+      [line-chart
+       {:height 300 :width 500 :data (clj->js @data)}
+       ;; why oh why do the props to recharts need to be camelcase? the props for
+       ;; rbd are in kebab case...
+       [cartesian-grid
+        {:strokeDasharray "3 3"}]
+       [xaxis {:dataKey "name"}]
+       [yaxis]
+       [rechart-line {:type "monotone" :dataKey "time-ms" }]])))
 
 (defn items-header
   []
@@ -177,11 +172,52 @@
        :value "Add item"
        :on-click add-item}]]))
 
+(defn add-sleep-input-selector
+  [time-atom touched-atom]
+  [datepicker {:showTimeSelect true
+               :selected @time-atom
+               :on-change #(do
+                             (reset! time-atom %)
+                             (reset! touched-atom true))
+               :showIcon true
+               :timeIntervals 5
+               :dateFormat "MM/dd/yyyy h:mm aa"}])
+
+(defn add-sleep-input
+  []
+  (let [start (reagent/atom nil)
+        stop (reagent/atom nil)
+        start-touched (reagent/atom nil)
+        stop-touched (reagent/atom nil)
+        sleep-history (re-frame/subscribe [::subs/sleep-history])
+        sleep-data (re-frame/subscribe [::subs/sleep-data])]
+    (fn []
+      [:div
+       [:p "Sleep history: " (str @sleep-history)]
+       [:p "Sleep data: " (str @sleep-data)]
+       [:p "Add time slept"]
+       [add-sleep-input-selector start start-touched]
+       [add-sleep-input-selector stop stop-touched]
+       [:input {:type "button"
+                :value "Add interval"
+                :disabled (or (not @start-touched) (not @stop-touched))
+                :on-click #(do
+                             (re-frame/dispatch [:add-sleep-interval @start @stop])
+                             (reset! start nil)
+                             (reset! stop nil)
+                             (reset! start-touched nil)
+                             (reset! stop-touched nil))}]])))
 
 (defn sleep-view
   []
-  [:p "hi"]
-  [datepicker])
+  (let [date (reagent/atom (js/Date.))]
+    (fn []
+      [datepicker {:showTimeSelect true
+                   :selected @date
+                   :on-change #(reset! date %)
+                   :showIcon true
+                   :timeIntervals 5
+                   :dateFormat "MM/dd/yyyy h:mm aa"}])))
 
 ;; https://github.com/atlassian/react-beautiful-dnd/issues/427
 (defn main-panel []
@@ -192,4 +228,5 @@
     [item-input]
     [items-view]
     [sleep-view]
+    [add-sleep-input]
     [chart-view]]])

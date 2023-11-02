@@ -3,4 +3,6 @@
 (def default-db
   {:new-item ""
    :items []
-   :selected-item nil})
+   :selected-item nil
+   :sleep-history {}
+   :sleep-data {}})
