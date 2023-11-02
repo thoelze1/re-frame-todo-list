@@ -8,6 +8,7 @@
    ["react-beautiful-dnd" :as react-beautiful-dnd]
    ["recharts" :as recharts]
    ["react-datepicker$default" :as DatePicker]
+   ["react-router-dom" :refer (BrowserRouter Routes Route Outlet Link)]
    [re-frame-todo-list.macros :as macros]
    ))
 
@@ -31,6 +32,12 @@
 (def rechart-line (reagent/adapt-react-class recharts/Line))
 
 (def datepicker (reagent/adapt-react-class DatePicker))
+
+(def browser-router (reagent/adapt-react-class BrowserRouter))
+(def routes (reagent/adapt-react-class Routes))
+(def route (reagent/adapt-react-class Route))
+(def outlet (reagent/adapt-react-class Outlet))
+(def link (reagent/adapt-react-class Link))
 
 (defn item-view
   [index item]
@@ -219,14 +226,33 @@
                    :timeIntervals 5
                    :dateFormat "MM/dd/yyyy h:mm aa"}])))
 
+
+
 ;; https://github.com/atlassian/react-beautiful-dnd/issues/427
-(defn main-panel []
-  [:div.min-vh-100.bg-cyan-400.overflow-auto
-   ;; stylesheet link must be here, not in other component
-   [:link {:rel "stylesheet" :href "react-datepicker.css"}]
-   [:div.min-vh-100.m-4
-    [item-input]
-    [items-view]
-    [sleep-view]
-    [add-sleep-input]
-    [chart-view]]])
+(defn main-panel
+  []
+  (let [;router
+        #_(reagent/atom (createBrowserRouter (clj->js [{:path "/"
+                                                      :element (reagent/create-element "div" #js{} "Hello world")}])))]
+    (fn []
+      [browser-router
+       [:div "This is the header, below which render links"]
+       [routes
+        [route {:path "/" :element (reagent/create-element "div" #js{} ""
+                                     (reagent/as-element [:div
+                                                          [link {:to "/"} "Home"]
+                                                          [link {:to "/index"} "Index"]
+                                                          [link {:to "/input"} "Input"]
+                                                          [outlet]]))}
+         [route {:path "index" :element (clj->js (reagent/create-element "div" #js{} "This is the Index content"))}]
+         [route {:path "input" :element (reagent/create-element "div" #js{} "This is the Input content")}]]]]
+      #_[router-provider {:router @router}]
+      #_[:div.min-vh-100.bg-cyan-400.overflow-auto
+       ;; stylesheet link must be here, not in other component
+       [:link {:rel "stylesheet" :href "react-datepicker.css"}]
+       [:div.min-vh-100.m-4
+        [item-input]
+        [items-view]
+        [sleep-view]
+        [add-sleep-input]
+        [chart-view]]])))
