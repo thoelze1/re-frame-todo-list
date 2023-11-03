@@ -24,6 +24,66 @@ or
 $ shadow-cljs node-repl
 ```
 
+## Routing
+
+`react-router` has over 50k stars on GitHub so I gave it a try. But supposedly "routing has nothing to do with dendering the view". Routers do two different things: 1) offer a bijection between route-as-value and route-as-html-url-string and 2) integrate with web browser history apis and web framework http request parsing. I guess react-router is coupling routing with rendering the view:
+https://www.reddit.com/r/Clojure/comments/a6lokt/routing_with_reframereagent/
+
+I want to just try reitit
+
+Wow, is routing just an artifact from browser navigation UIs and search engine indexing? 
+
+https://stackoverflow.com/questions/39636411/what-is-routing-why-is-routing-needed-in-single-page-web-apps
+
+"The fact that the appearance of the app may change between states is incidental to what is really going on. You should only implement a route in an SPA where there is a state of the app which you want the user to be able to return to."
+
+So really, I definitely don't need routing yet.
+
+## Clojure resources
+https://www.clojure-toolbox.com/
+
+## Front-end and back-end... what is a website?
+
+"What is the difference between opening an html file using localhost vs `file://`?" Short answer: browsers are complicated and treat local files and files served from webservers (including localhost) differently.
+https://stackoverflow.com/questions/40204913/difference-between-localhost-and-opening-html-file
+
+Even an SPA written in vanilla javscript is served from webserver: https://dev.to/dcodeyt/building-a-single-page-app-without-frameworks-hl9
+
+It's possible to use react, an SPA framework, to build an app that is openable via `file://`, but you would have to configure your bundler (often webpack) to process all of the URLs properly: https://www.reddit.com/r/reactjs/comments/uchls5/can_a_react_app_run_locally_like_an_html_page/
+
+So what is a bundler? What exactly is the output of a "compiled" react app? Well, the JSX gets transpiled to normal js (ideally a form compaitble with a wide array of browsers) by babel, then webpack "bundles" the js and its dependencies into fewer optimized files, possibly employing minification, tree-shaking, etc, while also bundling other assets (css, images, fonts etc) into a final form that is ready to be served to a web browser for execution. 
+https://poe.com/s/kHJn9SlVVLdQqi3HEzzy
+
+So the frontend is code that is served to the user's browser by some server, call it "x". Is server "x" the same server that accepts other requests, and that we call the backend? Yes, the front-end is served by the back-end.
+
+So the browser has a javascript engine that it uses to run javascript code as it is encountered in the HTML file or as it is triggered by user interaction
+
+AJAX is supported via native browser APIs such as `fetch()`. There are also libraries that further abstract these native AJAX APIs, such as Axios or jQuery AJAX functions. The important point is that your react app doesn't use AJAX until you need it: for storing persistent, server-side state, e.g.
+https://poe.com/s/R1zybxpn8LxDPVtEMyS0
+
+What is jQuery? jQuery is a javascript library that kind of does... everything. It's leff popular now, as many features it provides are now available in modern javascript and browser APIs. Not many modern tools rely on jQuery anymore. Earlier versions of bootstrap used jQuery, but not very many modern tools do.
+https://poe.com/s/L456sfJHce4JrsJKBjMp
+
+Before AJAX, how did web development go? Before jQuery, how did web development go? Before AJAX, the entire web page would reload after interaction with the user (submitting a form, e.g.) or at regular intervals. Also, server-side rendering (of the HTML served to the client) was necessary.
+https://poe.com/s/ETSfiZewZmI3T83oUX51
+
+"This is the old-school way of getting data for your app. The data is embedded in the HTML sent from the server. If you want fresh data, you need to refresh the page manually or have the page refresh periodically. Remember this?"
+https://blog.logrocket.com/comprehensive-guide-data-fetching-react/
+
+So I'm still trying to figure out whether there is a front-end "server". Based on chatgpt's response, the answer is yes: you need a server to serve static assets (more than html/js/css: images, files, etc) both when the browser first visits the page, and on demand if the user wants to open a specific file (you can't have the user download the entire content of the website when first visiting the page).
+
+According to this answer, the server is only necessary during development:
+https://stackoverflow.com/questions/60011485/why-does-react-have-a-server-on-its-own
+
+My understanding is that since react does not use AJAX, it uses entirely in-browser APIs to render the front-end and therefore react does not have any code running on the server side. This makes sense based on my experience writing the chess app: I was able to easily deploy it to github pages which is a static site generator! Of course any website's assets need to be served by an HTTP server, which is what github pages was doing with my compiled react. ChatGPT claimed that the front-end server may also need to handle routing and URL resolution (especially in SPAs where "the front-end code dynamically updates the content without full page reloads"). But in a vanilla react app without routing, this isn't true, I don't think. I wonder if github pages would serve a site that requires routing? I believe ChatGPT's answer is more relevant to other frameworks like NextJS that do server-side rendering. If only for serving the static site and even doing some routing, I can now see why you need a server hosting the front-end. So is it an HTTP server?
+
+Of course it's an HTTP server! See: `http://google.com`. HTTP is the protocol that your browser uses, so of course a website that your browser interacts with is going to have to respond on that protocol.
+
+## Single Page Applications (SPAs)
+
+Watch out for how to scale up your app: caching (cloudflare, e.g.), SEO, socials-sharing
+https://stackoverflow.blog/2021/12/28/what-i-wish-i-had-known-about-single-page-applications/
+
 ## CSS
 
 Note: I have not yet chosed a CSS build system, so certain files are hard copied from their node package to `resources/` (`react-datepicker`, for one). I feel this is a problem best left until deployment.
