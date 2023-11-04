@@ -226,7 +226,21 @@
                    :timeIntervals 5
                    :dateFormat "MM/dd/yyyy h:mm aa"}])))
 
-
+(defn router-example
+  []
+  [browser-router
+   [:div "This is the header, below which render links"]
+   [routes
+    [route {:path "/"
+            :element (reagent/as-element [:div
+                                          [link {:to "/"} "Home"]
+                                          [link {:to "/index"} "Index"]
+                                          [link {:to "/input"} "Input"]
+                                          [outlet]])}
+     [route {:path "index"
+             :element (reagent/as-element [:div "This is the Index content"])}]
+     [route {:path "input"
+             :element (reagent/as-element [:div "This is the Input content"])}]]]])
 
 ;; https://github.com/atlassian/react-beautiful-dnd/issues/427
 (defn main-panel
@@ -235,17 +249,7 @@
         #_(reagent/atom (createBrowserRouter (clj->js [{:path "/"
                                                       :element (reagent/create-element "div" #js{} "Hello world")}])))]
     (fn []
-      [browser-router
-       [:div "This is the header, below which render links"]
-       [routes
-        [route {:path "/" :element (reagent/create-element "div" #js{} ""
-                                     (reagent/as-element [:div
-                                                          [link {:to "/"} "Home"]
-                                                          [link {:to "/index"} "Index"]
-                                                          [link {:to "/input"} "Input"]
-                                                          [outlet]]))}
-         [route {:path "index" :element (clj->js (reagent/create-element "div" #js{} "This is the Index content"))}]
-         [route {:path "input" :element (reagent/create-element "div" #js{} "This is the Input content")}]]]]
+      [router-example]
       #_[router-provider {:router @router}]
       #_[:div.min-vh-100.bg-cyan-400.overflow-auto
        ;; stylesheet link must be here, not in other component
