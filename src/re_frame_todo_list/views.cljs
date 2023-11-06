@@ -386,5 +386,9 @@
         [:div.row.bg-cyan-500.rounded
          (for [[k m] pages]
            [:div.col.text-center
-            [:button.p2 {:on-click #(set-page k)} (:title m)]])]
+            [:button.px-2.rounded.m-1
+             {:on-click #(set-page k)
+              :disabled (= k @page)
+              :class (if (= k @page) "bg-cyan-600")}
+             [:p (:title m)]]])]
         [(get (pages @page) :component)]]])))
