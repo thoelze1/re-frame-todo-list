@@ -167,7 +167,7 @@
         add-item #(do
                     (re-frame/dispatch [:add-item @new-item])
                     (re-frame/dispatch [:edit-new-item ""]))]
-    [:div
+    [:div.text-black
      [:input
       {:type "text"
        :value @new-item
@@ -250,7 +250,7 @@
   []
   [:div
    [item-input]
-   [item-view]])
+   [items-view]])
 
 (defn sleep-view
   []
