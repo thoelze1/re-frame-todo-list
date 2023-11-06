@@ -26,3 +26,8 @@
  ::new-item
  (fn [db]
    (:new-item db)))
+
+(re-frame/reg-sub
+ ::expenses
+ (fn [db]
+   (get-in db [:expenses :expense-list])))

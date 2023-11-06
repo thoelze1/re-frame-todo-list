@@ -215,7 +215,7 @@
                              (reset! start-touched nil)
                              (reset! stop-touched nil))}]])))
 
-(defn sleep-view
+(defn datepicker-example
   []
   (let [date (reagent/atom (js/Date.))]
     (fn []
@@ -242,21 +242,149 @@
      [route {:path "input"
              :element (reagent/as-element [:div "This is the Input content"])}]]]])
 
-;; https://github.com/atlassian/react-beautiful-dnd/issues/427
+(defn timeline-view
+  []
+  [:div "Not implemented yet"])
+
+(defn todo-view
+  []
+  [:div
+   [item-input]
+   [item-view]])
+
+(defn sleep-view
+  []
+  [:div
+   [add-sleep-input]
+   [chart-view]])
+
+;; This tool is not meant to be a full-fledged expense tracker. The UI wants to
+;; be minimal to reconcile the expenses that you know you've made throughout
+;; your day with your cash. There are other expense types such as subscription
+;; payments that are different: you didn't initiate the payment in the
+;; moment. So what even is the point of this? It's good for any small enough
+;; transactions where you don't care to get a receipt. But even if you do get a
+;; receipt, it's nice to have a single source of truth for all of your
+;; transactions, whether you used a card, have a receipt, used cash, etc. In a
+;; sense, payents that you initiate in the moment are fundamentally different
+;; from subscriptions, which form a different category. But are there other
+;; categories? The other category might just be fraud.
+
+;; sorted to ensure that items maintain an order (which is not necessarily the
+;; order in which they are written)
+(def expense-fields
+  {:timestamp {:label "Date & Time"
+               :selector (fn [atom]
+                           [datepicker {:showTimeSelect true
+                                        :selected (deref atom)
+                                        :on-change #(reset! atom %)
+                                        :showIcon true
+                                        :timeIntervals 5
+                                        :dateFormat "MM/dd/yyyy h:mm aa"}])
+               :view identity
+               :default (js/Date.)}
+   :name {:label "Expense Name"
+          :selector (fn [atom]
+                      [:input.rounded
+                       {:type "text"
+                        :value (deref atom)
+                        :on-change #(reset! atom (-> % .-target .-value))}])
+          :view identity
+          :default ""}
+   :currency {:label "Currency"
+              :selector (fn [atom]
+                          [:select.rounded
+                           {:on-change (fn [e]
+                                         (reset! atom (-> e (.-target) (.-value))))}
+                           [:option "USD"]
+                           [:option "ARS"]])
+              :view identity
+              :default "USD"}
+   :amount {:label "Amount"
+            :selector (fn [atom]
+                        [:input.rounded
+                         {:type "number"
+                          :value (deref atom)
+                          :on-change #(do
+                                        (println (str (-> % .-target .-value)))
+                                        (reset! atom (-> % .-target .-value)))}])
+            :view identity
+            :default "0"}})
+
+;; I'll replace this if I find a builtin for mapping over values
+(defn map-map [f m]
+  (reduce (fn [new [k v]]
+            (conj new [k (f v)]))
+          {}
+          m))
+
+;; you have to be careful how you use do's when using for with atoms
+(defn add-expense-input
+  []
+  (let [atoms (reagent/atom (map-map #(reagent/atom (get % :default)) expense-fields))]
+    (fn []
+      [:div
+       [:div.row
+        (doall
+         (for [[field-key field-map] expense-fields]
+           [:div.col
+            [:p (:label field-map)]
+            [:div.text-black
+             (apply (:selector field-map)
+                    [(get @atoms field-key)])]]))
+        [:div.col
+         [:input
+          {:type "button"
+           :value "Add expense"
+           :on-click #(do
+                       (re-frame/dispatch [:add-expense (map-map deref @atoms)])
+                       (dorun
+                        (for [[k v] @atoms]
+                          (reset! v (get-in expense-fields [k :default])))))}]]]])))
+
+(defn expenses-list-view
+  []
+  (let [items (re-frame/subscribe [::subs/expenses])]
+    [:div
+     (for [item-map @items]
+       [:div.row.bg-cyan-500.rounded
+        (for [[field-key field-map] expense-fields]
+          [:div.col.text-center
+           (str (:label field-map) ": " (apply (get field-map :view)
+                                               [(get item-map field-key)]))])])]))
+
+(defn expenses-view
+  []
+  [:div
+   [:p.text-center.text-white.text-xl.font-mono.m-2 "Expenses"]
+   ;;[add-currency-input]
+   ;;[add-payment-method-input]
+   [add-expense-input]
+   [expenses-list-view]])
+
+(def pages
+  {:timeline {:title "Timeline"
+              :component timeline-view}
+   :todo {:title "To-Do"
+          :component todo-view}
+   :sleep {:title "Sleep Habits"
+           :component sleep-view}
+   :expenses {:title "Expenses"
+              :component expenses-view}})
+
+ ;; https://github.com/atlassian/react-beautiful-dnd/issues/427
 (defn main-panel
   []
-  (let [;router
-        #_(reagent/atom (createBrowserRouter (clj->js [{:path "/"
-                                                      :element (reagent/create-element "div" #js{} "Hello world")}])))]
+  (let [page (reagent/atom :expenses)
+        set-page #(reset! page %)]
     (fn []
-      [router-example]
-      #_[router-provider {:router @router}]
-      #_[:div.min-vh-100.bg-cyan-400.overflow-auto
+      [:div.min-vh-100.bg-cyan-400.overflow-auto.text-white.font-mono
        ;; stylesheet link must be here, not in other component
        [:link {:rel "stylesheet" :href "react-datepicker.css"}]
        [:div.min-vh-100.m-4
-        [item-input]
-        [items-view]
-        [sleep-view]
-        [add-sleep-input]
-        [chart-view]]])))
+        [:p.text-center.text-white.text-3xl.font-mono.m-2 "Your Everything Tracker"]
+        [:div.row.bg-cyan-500.rounded
+         (for [[k m] pages]
+           [:div.col.text-center
+            [:button.p2 {:on-click #(set-page k)} (:title m)]])]
+        [(get (pages @page) :component)]]])))

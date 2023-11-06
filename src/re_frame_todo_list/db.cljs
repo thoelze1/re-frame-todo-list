@@ -5,4 +5,10 @@
    :items []
    :selected-item nil
    :sleep-history {}
-   :sleep-data {}})
+   :sleep-data {}
+   :expenses {:currencies []
+              :payment-methods []
+              :expense-list [{:timestamp (js/Date.)
+                              :name "Lunch with Aiden"
+                              :currency "ARG"
+                              :amount 5800}]}})

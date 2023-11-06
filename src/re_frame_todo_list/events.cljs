@@ -25,6 +25,11 @@
                                        :id @id
                                        :done {}})))))))
 
+(re-frame.core/reg-event-db
+ :add-expense
+ (fn [db [_ m]]
+   (update-in db [:expenses :expense-list] conj m)))
+
 (defn sleep-history->sleep-data
   [sleep-history]
   (reduce (fn [out [_ [from to]]]
