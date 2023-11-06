@@ -268,10 +268,10 @@
 ;; transactions, whether you used a card, have a receipt, used cash, etc. In a
 ;; sense, payents that you initiate in the moment are fundamentally different
 ;; from subscriptions, which form a different category. But are there other
-;; categories? The other category might just be fraud.
+;; categories? The other category might just be fraud. Then there are "IOUs"
+;; where you don't pay someone in the moment, or where someone owes you. These
+;; are also good to track...
 
-;; sorted to ensure that items maintain an order (which is not necessarily the
-;; order in which they are written)
 (def expense-fields
   {:timestamp {:label "Date & Time"
                :selector (fn [atom]
@@ -280,12 +280,13 @@
                                         :on-change #(reset! atom %)
                                         :showIcon true
                                         :timeIntervals 5
-                                        :dateFormat "MM/dd/yyyy h:mm aa"}])
+                                        :dateFormat "MM/dd/yyyy h:mm aa"
+                                        :className "rounded"}])
                :view identity
                :default (js/Date.)}
    :name {:label "Expense Name"
           :selector (fn [atom]
-                      [:input.rounded
+                      [:input.rounded.px-2
                        {:type "text"
                         :value (deref atom)
                         :on-change #(reset! atom (-> % .-target .-value))}])
@@ -293,7 +294,7 @@
           :default ""}
    :currency {:label "Currency"
               :selector (fn [atom]
-                          [:select.rounded
+                          [:select.rounded.px-2
                            {:on-change (fn [e]
                                          (reset! atom (-> e (.-target) (.-value))))}
                            [:option "USD"]
@@ -302,17 +303,15 @@
               :default "USD"}
    :amount {:label "Amount"
             :selector (fn [atom]
-                        [:input.rounded
+                        [:input.rounded.px-2
                          {:type "number"
                           :value (deref atom)
-                          :on-change #(do
-                                        (println (str (-> % .-target .-value)))
-                                        (reset! atom (-> % .-target .-value)))}])
+                          :on-change #(reset! atom (-> % .-target .-value))}])
             :view identity
             :default "0"}})
 
 ;; I'll replace this if I find a builtin for mapping over values
-(defn map-map [f m]
+(defn map-vals [f m]
   (reduce (fn [new [k v]]
             (conj new [k (f v)]))
           {}
@@ -321,26 +320,24 @@
 ;; you have to be careful how you use do's when using for with atoms
 (defn add-expense-input
   []
-  (let [atoms (reagent/atom (map-map #(reagent/atom (get % :default)) expense-fields))]
+  (let [atoms (map-vals #(reagent/atom (get % :default)) expense-fields)]
     (fn []
-      [:div
-       [:div.row
-        (doall
-         (for [[field-key field-map] expense-fields]
-           [:div.col
-            [:p (:label field-map)]
-            [:div.text-black
-             (apply (:selector field-map)
-                    [(get @atoms field-key)])]]))
-        [:div.col
-         [:input
-          {:type "button"
-           :value "Add expense"
-           :on-click #(do
-                       (re-frame/dispatch [:add-expense (map-map deref @atoms)])
+      [:div.row
+       (doall
+        (for [[field-key field-map] expense-fields]
+          [:div.col
+           [:p (:label field-map)]
+           [:div.text-black
+            (apply (:selector field-map) [(get atoms field-key)])]]))
+       [:div.col
+        [:input
+         {:type "button"
+          :value "Add expense"
+          :on-click #(do
+                       (re-frame/dispatch [:add-expense (map-vals deref atoms)])
                        (dorun
-                        (for [[k v] @atoms]
-                          (reset! v (get-in expense-fields [k :default])))))}]]]])))
+                        (for [[k v] atoms]
+                          (reset! v (get-in expense-fields [k :default])))))}]]])))
 
 (defn expenses-list-view
   []
