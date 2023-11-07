@@ -4,10 +4,17 @@
    [re-frame-todo-list.db :as db]
    [reagent.core :as reagent]
    [goog.events :as events]
+   [ajax.core :refer [GET POST]]
    )
   (:import [goog.events EventType]))
 
 (enable-console-print!)
+
+(defn handler [response]
+  (.log js/console (str response)))
+
+(defn error-handler [{:keys [status status-text]}]
+  (.log js/console (str "something bad happened: " status " " status-text)))
 
 (re-frame/reg-event-db
  ::initialize-db
@@ -24,6 +31,18 @@
            (update db :items #(conj % {:val item-str
                                        :id @id
                                        :done {}})))))))
+
+(re-frame.core/reg-event-fx
+ :helper
+ (fn [cofx [_]]
+   {:click []}))
+
+(re-frame.core/reg-fx
+ :click
+ (fn []
+   ;; http:// needed here... why?
+   (GET "http://localhost:3000/" {:handler handler
+                           :error-handler error-handler})))
 
 (re-frame.core/reg-event-db
  :add-expense

@@ -244,7 +244,7 @@
 
 (defn timeline-view
   []
-  [:div "Not implemented yet"])
+  [:button {:on-click #(re-frame/dispatch [:helper])} "Test"])
 
 (defn todo-view
   []
