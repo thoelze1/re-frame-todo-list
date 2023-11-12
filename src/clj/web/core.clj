@@ -2,12 +2,17 @@
   (:require [reitit.ring :as ring]
             [muuntaja.core :as m]
             [aleph.http :as http]
-            [mount.core :as mount]))
+            [mount.core :as mount]
+            [clojure.java.io :as io]))
+
+(defn index-handler [_]
+  {:body (slurp (io/resource "public/index.html"))})
 
 (def app
   (ring/ring-handler
    (ring/router
-    [["/"]]
+    [["/js/*" (ring/create-resource-handler {:root "public/js"})]
+     ["/" {:get index-handler}]]
     {:data {:muuntaja m/instance}})))
 
 (mount/defstate server
