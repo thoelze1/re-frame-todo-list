@@ -2,6 +2,23 @@
 
 A [re-frame](https://github.com/day8/re-frame) to-do list manager.
 
+## To Do
+
+- Use re-frame's http-fx library (wrapper for cljs-ajax)
+- Implement routing
+  - I can see that using `defmulti` as in
+    [crux-db-front-end](https://github.com/danownsthisspace/crux-db-front-end)
+    is an abuse of clojurescript's (lack of) arity checking. I like
+    the encapsulation (`srticles.views` just makes a call to
+    `articles.route/panels`) but I think the interface for adding
+    panels should just use another mechanism (instead of `defmulti`).
+- Follow https://www.youtube.com/watch?v=6jvG3XbSeos to add a single
+  server in this repo that will serve both the frontend and backend.
+
+## Notes
+
+To use namespaces in a CLJS repl, you must `require` them
+
 ## Quickstart
 
 ```
@@ -38,6 +55,24 @@ https://stackoverflow.com/questions/39636411/what-is-routing-why-is-routing-need
 "The fact that the appearance of the app may change between states is incidental to what is really going on. You should only implement a route in an SPA where there is a state of the app which you want the user to be able to return to."
 
 So really, I definitely don't need routing yet.
+
+Update 7/11/2023: as shadow-cljs hot reloads my code, it's getting annoying to renavigate to the state I was wanting to currently test. I'm operating in the dark, and since reitit has a lot more usage than cljs-ajax, I'm gonna give it a try.
+
+## HTTP Servers
+
+Supposedly the asynchronous stuff in aleph is first class and it exposes data from the network as a manifold stream, which makes it play well with websockets. A possible alternative to jetty.
+
+## Structuring backend and frontend
+
+A web application can suse a different server for each of its services: the frontend, the backend, the database, etc. If we're talking about just frontend and backend, let's think of how code can be structured:
+
+        1 Server    2 Servers
+ 
+1 repo  Works       But why?
+
+2 repos Nope        Works
+
+
 
 ## Clojure resources
 https://www.clojure-toolbox.com/
