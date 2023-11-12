@@ -12,7 +12,7 @@
 
 (mount/defstate server
   :start (http/start-server #'app {:port 4080})
-  :stop (.stop server))
+  :stop (.close server))
 
 (defn -main [& _]
   (mount/start))
