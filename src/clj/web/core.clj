@@ -12,6 +12,7 @@
   (ring/ring-handler
    (ring/router
     [["/js/*" (ring/create-resource-handler {:root "public/js"})]
+     ["/css/*" (ring/create-resource-handler {:root "public/css"})]
      ["/" {:get index-handler}]]
     {:data {:muuntaja m/instance}})))
 

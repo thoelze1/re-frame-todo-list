@@ -377,7 +377,7 @@
     (fn []
       [:div.min-vh-100.bg-cyan-400.overflow-auto.text-white.font-mono
        ;; stylesheet link must be here, not in other component
-       [:link {:rel "stylesheet" :href "react-datepicker.css"}]
+       [:link {:rel "stylesheet" :href "css/react-datepicker.css"}]
        [:div.min-vh-100.m-4
         [:p.text-center.text-white.text-3xl.font-mono.m-2 "Your Everything Tracker"]
         [:div.row.bg-cyan-500.rounded
