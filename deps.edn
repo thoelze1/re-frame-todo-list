@@ -3,4 +3,6 @@
         metosin/reitit {:mvn/version "0.5.15"}
         metosin/muuntaja {:mvn/version "0.6.8"}
         mount/mount {:mvn/version "0.1.16"}
-        com.xtdb/xtdb-core {:mvn/version "1.24.1"}}}
+        com.xtdb/xtdb-core {:mvn/version "1.24.1"}
+        com.xtdb/xtdb-jdbc {:mvn/version "1.24.1"}
+        org.xerial/sqlite-jdbc {:mvn/version "3.36.0.3"}}}
