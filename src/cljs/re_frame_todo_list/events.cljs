@@ -41,8 +41,9 @@
  :click
  (fn []
    ;; http:// needed here... why?
-   (GET "http://localhost:3000/" {:handler handler
-                           :error-handler error-handler})))
+   (POST "http://localhost:4080/foo" {:params {:data "Hello"}
+                                      :handler handler
+                                      :error-handler error-handler})))
 
 (re-frame.core/reg-event-db
  :add-expense

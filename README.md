@@ -58,6 +58,12 @@ So really, I definitely don't need routing yet.
 
 Update 7/11/2023: as shadow-cljs hot reloads my code, it's getting annoying to renavigate to the state I was wanting to currently test. I'm operating in the dark, and since reitit has a lot more usage than cljs-ajax, I'm gonna give it a try.
 
+## Middleware, Muuntaja, Content Negotiation
+
+By default, `data` in a `POST` request is encoded in the request `body` as a Java `ByteArrayInputStream`. This is because we are using aleph, which uses ring, which uses jetty: https://stackoverflow.com/questions/51750000/why-requestbody-in-httpservletrequest-is-an-inputstream
+
+None of the popular content negotiators I see (muuntaja, yada, liberator) have received updates in several years.
+
 ## HTTP Servers
 
 Supposedly the asynchronous stuff in aleph is first class and it exposes data from the network as a manifold stream, which makes it play well with websockets. A possible alternative to jetty.
