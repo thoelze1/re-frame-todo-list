@@ -5,6 +5,7 @@
    [re-frame-todo-list.events :as events]
    [re-frame-todo-list.views :as views]
    [re-frame-todo-list.config :as config]
+   [day8.re-frame.http-fx]
    ))
 
 

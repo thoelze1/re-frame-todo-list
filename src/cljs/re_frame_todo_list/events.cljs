@@ -4,17 +4,20 @@
    [re-frame-todo-list.db :as db]
    [reagent.core :as reagent]
    [goog.events :as events]
-   [ajax.core :refer [GET POST]]
-   )
+   [ajax.core :as ajax])
   (:import [goog.events EventType]))
 
 (enable-console-print!)
 
-(defn handler [response]
-  (.log js/console (str response)))
+(re-frame.core/reg-event-db
+ :handler
+ (fn [db [_ res]]
+   (.log js/console (str res))))
 
-(defn error-handler [{:keys [status status-text]}]
-  (.log js/console (str "something bad happened: " status " " status-text)))
+(re-frame.core/reg-event-db
+ :error-handler
+ (fn [db [_ {:keys [status status-text]}]]
+   (.log js/console (str "something bad happened: " status " " status-text))))
 
 (re-frame/reg-event-db
  ::initialize-db
@@ -35,15 +38,13 @@
 (re-frame.core/reg-event-fx
  :helper
  (fn [cofx [_]]
-   {:click []}))
-
-(re-frame.core/reg-fx
- :click
- (fn []
-   ;; http:// needed here... why?
-   (POST "http://localhost:4080/foo" {:params {:data "Hello"}
-                                      :handler handler
-                                      :error-handler error-handler})))
+   {:http-xhrio {:method          :post
+                 :uri             "http://localhost:4080/foo"
+                 :params          {:data "using http-fx"}
+                 :format          (ajax/json-request-format)
+                 :response-format (ajax/json-response-format {:keywords? true})
+                 :on-success      [:handler]
+                 :on-failure      [:error-handler]}}))
 
 (re-frame.core/reg-event-db
  :add-expense
@@ -67,14 +68,18 @@
           []
           sleep-history))
 
-(re-frame.core/reg-event-db
+(re-frame.core/reg-event-fx
  :add-sleep-interval
- (fn [db [_ from to]]
-   (let [new (conj (:sleep-history db) {(random-uuid) [from to]})]
-     (-> db
-         (assoc :sleep-history new)
-         (assoc :sleep-data (sleep-history->sleep-data new))
-         ))))
+ (fn [_ [_ from to]]
+   {:http-xhrio {:method          :post
+                 :uri             "http://localhost:4080/sleep"
+                 :params          {:type :sleep
+                                   :start from
+                                   :stop to}
+                 :format          (ajax/json-request-format)
+                 :response-format (ajax/json-response-format {:keywords? true})
+                 :on-success      [:handler]
+                 :on-failure      [:error-handler]}}))
 
 (defn vec-remove
   "remove elem in coll"

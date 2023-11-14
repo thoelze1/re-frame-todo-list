@@ -8,10 +8,6 @@
             [clojure.java.io :as io]
             [database.core :as db]))
 
-(def with-muuntaja (atom nil))
-(def without-muuntaja (atom nil))
-(def zero-muuntaja (atom nil))
-
 (defn index-handler [_]
   {:body (slurp (io/resource "public/index.html"))})
 
@@ -25,7 +21,9 @@
 (def app
   (ring/ring-handler
    (ring/router
-    [["/foo" {:post create-handler
+    [["/sleep" {:post create-handler
+                :middleware [:content]}]
+     ["/foo" {:post create-handler
               :middleware [:content]}]
      ["/js/*" (ring/create-resource-handler {:root "public/js"})]
      ["/css/*" (ring/create-resource-handler {:root "public/css"})]
