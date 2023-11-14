@@ -4,7 +4,7 @@
 
 (def connection-pool
   {:xtdb.jdbc/connection-pool {:dialect {:xtdb/module 'xtdb.jdbc.sqlite/->dialect}
-                               :db-spec {:dbname "test"}}
+                               :db-spec {:dbname "sqlite/test"}}
    :xtdb/tx-log {:xtdb/module 'xtdb.jdbc/->tx-log
                  :connection-pool :xtdb.jdbc/connection-pool}
    :xtdb/document-store {:xtdb/module 'xtdb.jdbc/->document-store
@@ -19,16 +19,12 @@
     (assoc m :xt/id (java.util.UUID/randomUUID))
     m))
 
-(ensure-id {:xt/id 1234})
-
 (defn write [entity]
   (let [with-id (ensure-id entity)]
     (xt/submit-tx node [[::xt/put with-id]])))
 
-(write {:data "Hi"})
-
-#_(defn query []
-    (crux/q
-     (crux/db node)
-     '{:find [(pull ?e [*])]
-       :where [[?e :crux.db/id _]] }))
+(defn query []
+  (xt/q
+   (xt/db node)
+   '{:find [(pull ?e [*])]
+     :where [[?e :xt/id _]] }))
