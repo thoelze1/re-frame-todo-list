@@ -15,3 +15,11 @@
 (defn write [entity]
   (let [with-id (ensure-id entity)]
     (crux/submit-tx node [[:crux.tx/put with-id]])))
+
+(defn query []
+  (crux/q
+   (crux/db node)
+   '{:find [(pull ?e [*])]
+     :where [[?e :crux.db/id _]] }))
+
+(query)
