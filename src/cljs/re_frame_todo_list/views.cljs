@@ -244,7 +244,7 @@
 
 (defn timeline-view
   []
-  [:button {:on-click #(re-frame/dispatch [:helper])} "Test"])
+  [:button {:on-click #(re-frame/dispatch [:app/send {:a 1 :b 2}])} "Test"])
 
 (defn todo-view
   []

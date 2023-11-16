@@ -14,6 +14,21 @@ A [re-frame](https://github.com/day8/re-frame) to-do list manager.
     panels should just use another mechanism (instead of `defmulti`).
 - Follow https://www.youtube.com/watch?v=6jvG3XbSeos to add a single
   server in this repo that will serve both the frontend and backend.
+- Move logger to its own namespace
+- Clean up namespaces
+- Clean up git branches
+- Standardize logging in frontend (replace lambdaisland.glogi with
+  timbre?)
+
+## WebSocket lessons
+
+- A re-frame event handler must return a map of effects! Whatever it
+  returns will be treated as such...
+- Not sure why the websocket packer has to be transit... `:edn` breaks
+  with "invalid event" exactly like:
+  https://stackoverflow.com/questions/60942041/invalid-event-chsk-handshake-when-using-sente-packers-transit-get-transit-pa
+  Wait--is it because I'm using the transit packer on the backend and
+  the two must match? Probably
 
 ## Notes
 

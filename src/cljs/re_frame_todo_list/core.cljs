@@ -6,8 +6,13 @@
    [re-frame-todo-list.views :as views]
    [re-frame-todo-list.config :as config]
    [day8.re-frame.http-fx]
-   ))
+   [lambdaisland.glogi :as log]
+   [lambdaisland.glogi.console :as glogi-console]))
 
+(glogi-console/install!)
+
+(log/set-levels
+ {:glogi/root   :info})
 
 (defn dev-setup []
   (when config/debug?
@@ -21,5 +26,6 @@
 
 (defn init []
   (re-frame/dispatch-sync [::events/initialize-db])
+  (re-frame/dispatch-sync [:app/connect])
   (dev-setup)
   (mount-root))

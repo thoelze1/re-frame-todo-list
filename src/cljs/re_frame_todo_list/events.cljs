@@ -4,10 +4,24 @@
    [re-frame-todo-list.db :as db]
    [reagent.core :as reagent]
    [goog.events :as events]
-   [ajax.core :as ajax])
+   [ajax.core :as ajax]
+   [re-frame-todo-list.socket :as socket])
   (:import [goog.events EventType]))
 
 (enable-console-print!)
+
+(re-frame/reg-event-fx
+ :app/send
+ (fn [_ [_ data]]
+   (socket/send-data data)
+   ;; TODO
+   {}))
+
+(re-frame/reg-event-fx
+ :app/connect
+ (fn [_ _]
+   (socket/start!)
+   {}))
 
 (re-frame.core/reg-event-db
  :handler
