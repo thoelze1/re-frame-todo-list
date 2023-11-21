@@ -9,7 +9,8 @@
             [mount.core :as mount]
             [clojure.java.io :as io]
             [database.core :as db]
-            [web.socket :as socket])
+            [web.socket :as socket]
+            [clojure.core.async :refer [go]])
   (:import (java.time OffsetDateTime LocalTime LocalDate Instant)))
 
 (defn index-handler [_]
@@ -20,6 +21,12 @@
     ;;(reset! zero-muuntaja req)
     (clojure.pprint/pprint tx)
     ;;(clojure.pprint/pprint (slurp (:body req)))
+    {:body body-params}))
+
+(defn sleep-create-handler [{:keys [body-params]}]
+  (let [tx (db/write body-params)]
+    (clojure.pprint/pprint tx)
+    (go (db/after-tx tx #(socket/send-data "/sleep")))
     {:body body-params}))
 
 (def keyword-params-middleware
@@ -76,7 +83,7 @@
                :post #(socket/ring-ajax-post %)
                :middleware [:params :keyword-params]}]
      ["/sleep" {:get sleep-data-handler
-                :post create-handler
+                :post sleep-create-handler
                 :middleware [:content]}]
      ["/foo" {:post create-handler
               :middleware [:content]}]

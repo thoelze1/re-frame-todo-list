@@ -19,6 +19,10 @@
     (assoc m :xt/id (java.util.UUID/randomUUID))
     m))
 
+(defn after-tx [tx f]
+  (xt/await-tx node tx)
+  (f))
+
 (defn write [entity]
   (let [with-id (ensure-id entity)]
     (xt/submit-tx node [[::xt/put with-id]])))

@@ -20,7 +20,8 @@ A [re-frame](https://github.com/day8/re-frame) to-do list manager.
 - Standardize logging in frontend (replace lambdaisland.glogi with
   timbre?)
 
-## Representing date and time: unixtime or toJSON
+## Date and time
+Seems like you have two options: ISO 8601 and Unix Time.
 https://stackoverflow.com/questions/10286204/what-is-the-right-json-date-format
 
 ## WebSocket lessons

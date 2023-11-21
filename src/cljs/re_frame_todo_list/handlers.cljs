@@ -17,3 +17,9 @@
   (let [[event-type data] ?data]
     (rf/dispatch [:app/set-data data])
     (log/info :push-event data)))
+
+(defmethod -event-msg-handler :some/broadcast
+  [{:keys [?data]}]
+  (let [[event-type data] ?data]
+    (rf/dispatch [:get-sleep-chart-data])
+    (log/info :push-event data)))
