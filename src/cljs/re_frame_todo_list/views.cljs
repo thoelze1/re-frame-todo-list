@@ -91,19 +91,56 @@
      (range 0 -5 -1)))
    [:div.col]])
 
+;; this is redundant and fragile (see toLocaleDateString
+(defn date->mmddyyy [date-str]
+  (let [js-date (js/Date. date-str)]
+    (str (inc (.getMonth js-date)) "/"
+         (.getDate js-date) "/"
+         (.getFullYear js-date))))
+
+(defn date->mmdd [date-or-date-str]
+  (let [js-date (js/Date. date-or-date-str)]
+    (str (inc (.getMonth js-date)) "/" (.getDate js-date))))
+
+;; default to last 14 days
+(defn get-dates []
+  (let [now (js/Date.now)]
+    (mapv (fn [i] (date->mmdd (js/Date. (+ now (* 1000 60 60 24 i)))))
+          (range -13 1))))
+
+(defn seconds->hours [s]
+  (println (/ s 60 60))
+  (/ s 60 60))
+
+(defn format-data [data]
+  (let [clean-data (update-keys data
+                                (fn [date-k] (-> date-k
+                                                 name
+                                                 (js/Date.)
+                                                 (date->mmdd))))]
+    (mapv (fn [date] {:date date
+                      :hours (-> clean-data (get date) (seconds->hours))})
+          (get-dates))))
+
+;; TODO does the sleep-history->data function overwite days? E.g. you sleep the
+;; first 6 hours of a day, and the last 2
 (defn chart-view
   []
   (let [data (re-frame/subscribe [::subs/sleep-data])]
     (fn []
-      [line-chart
-       {:height 300 :width 500 :data (clj->js @data)}
-       ;; why oh why do the props to recharts need to be camelcase? the props for
-       ;; rbd are in kebab case...
-       [cartesian-grid
-        {:strokeDasharray "3 3"}]
-       [xaxis {:dataKey "name"}]
-       [yaxis]
-       [rechart-line {:type "monotone" :dataKey "time-ms" }]])))
+      (let [d (-> @data (format-data) (clj->js))]
+        [line-chart
+         {:height 400 :width 1000 :data d}
+         ;; why oh why do the props to recharts need to be camelcase? the props for
+         ;; rbd are in kebab case...
+         [cartesian-grid
+          {:strokeDasharray "3 3"}]
+         [xaxis {:dataKey "date"
+                 :angle -60
+                 :height 80
+                 :text-anchor "end"}]
+         [yaxis]
+         [rechart-line {:type "monotone" :dataKey "hours" }]]))))
 
 (defn items-header
   []
@@ -181,14 +218,15 @@
 
 (defn add-sleep-input-selector
   [time-atom touched-atom]
-  [datepicker {:showTimeSelect true
-               :selected @time-atom
-               :on-change #(do
-                             (reset! time-atom %)
-                             (reset! touched-atom true))
-               :showIcon true
-               :timeIntervals 5
-               :dateFormat "MM/dd/yyyy h:mm aa"}])
+  [:div.text-black
+   [datepicker {:showTimeSelect true
+                :selected @time-atom
+                :on-change #(do
+                              (reset! time-atom %)
+                              (reset! touched-atom true))
+                :showIcon true
+                :timeIntervals 5
+                :dateFormat "MM/dd/yyyy h:mm aa"}]])
 
 (defn add-sleep-input
   []
@@ -202,9 +240,13 @@
       [:div
        [:p "Sleep history: " (str @sleep-history)]
        [:p "Sleep data: " (str @sleep-data)]
+       [:p "Formatted sleep data: " (str (format-data @sleep-data))]
        [:p "Add time slept"]
        [add-sleep-input-selector start start-touched]
        [add-sleep-input-selector stop stop-touched]
+       [:input {:type "button"
+                :value "Update graph"
+                :on-click #(re-frame/dispatch [:get-sleep-chart-data])}]
        [:input {:type "button"
                 :value "Add interval"
                 :disabled (or (not @start-touched) (not @stop-touched))
@@ -311,6 +353,7 @@
             :default "0"}})
 
 ;; I'll replace this if I find a builtin for mapping over values
+;; TODO the builtin for mapping over values is update-vals
 (defn map-vals [f m]
   (reduce (fn [new [k v]]
             (conj new [k (f v)]))

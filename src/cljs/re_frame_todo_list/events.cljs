@@ -65,31 +65,32 @@
  (fn [db [_ m]]
    (update-in db [:expenses :expense-list] conj m)))
 
-(defn sleep-history->sleep-data
-  [sleep-history]
-  (reduce (fn [out [_ [from to]]]
-            (into out
-                  (loop [f from
-                         m []]
-                    (let [midnight (.setHours (js/Date. f) 24 0 0 0)]
-                      (do
-                        (println "f: " (str f) ", to: " (str to) ", recur: " (> to midnight))
-                        (if (> to midnight)
-                          (recur midnight (conj m {:name (.toDateString (js/Date. f))
-                                                   :time-ms (- midnight f)}))
-                          (conj m {:name (.toDateString (js/Date. f))
-                                   :time-ms (- to f)})))))))
-          []
-          sleep-history))
+;; data manipulation could go here, but printing date e.g. wants to be done in
+;; views
+(re-frame.core/reg-event-db
+ :update-sleep-chart-data
+ (fn [db [_ res]]
+   (assoc db :sleep-data res)))
 
+(re-frame.core/reg-event-fx
+ :get-sleep-chart-data
+ (fn [_ [_ from to]]
+   {:http-xhrio {:method :get
+                 :uri "http://localhost:4080/sleep"
+                 :format          (ajax/json-request-format)
+                 :response-format (ajax/json-response-format {:keywords? true})
+                 :on-success      [:update-sleep-chart-data]
+                 :on-failure      [:error-handler]}}))
+
+;; from and to are Date objects
 (re-frame.core/reg-event-fx
  :add-sleep-interval
  (fn [_ [_ from to]]
    {:http-xhrio {:method          :post
                  :uri             "http://localhost:4080/sleep"
                  :params          {:type :sleep
-                                   :start from
-                                   :stop to}
+                                   :start from ;; could use .getTime to send
+                                   :stop to}   ;;   unix-time instead...
                  :format          (ajax/json-request-format)
                  :response-format (ajax/json-response-format {:keywords? true})
                  :on-success      [:handler]

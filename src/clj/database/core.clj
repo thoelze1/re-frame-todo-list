@@ -23,8 +23,11 @@
   (let [with-id (ensure-id entity)]
     (xt/submit-tx node [[::xt/put with-id]])))
 
-(defn query []
-  (xt/q
-   (xt/db node)
-   '{:find [(pull ?e [*])]
-     :where [[?e :xt/id _]] }))
+(defn query [d]
+  (xt/q (xt/db node) d))
+
+(defn query-all []
+  (query '{:find [(pull ?e [*])]
+           :where [[?e :xt/id _]] }))
+
+(def experiment)

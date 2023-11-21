@@ -20,6 +20,9 @@ A [re-frame](https://github.com/day8/re-frame) to-do list manager.
 - Standardize logging in frontend (replace lambdaisland.glogi with
   timbre?)
 
+## Representing date and time: unixtime or toJSON
+https://stackoverflow.com/questions/10286204/what-is-the-right-json-date-format
+
 ## WebSocket lessons
 
 - A re-frame event handler must return a map of effects! Whatever it
@@ -29,6 +32,19 @@ A [re-frame](https://github.com/day8/re-frame) to-do list manager.
   https://stackoverflow.com/questions/60942041/invalid-event-chsk-handshake-when-using-sente-packers-transit-get-transit-pa
   Wait--is it because I'm using the transit packer on the backend and
   the two must match? Probably
+
+Example: I want to add a new sleep interval to the DB in the sleep
+view, then process it on the backend into chart data, then render the
+new chart in the frontend ASAP. With HTTP requests, there is no way
+for the backend to notify the frontend of the new data, so I'll use
+websockets. So the question is: do we use websockets to actually
+trasnmit the data, or do we use websockets only to notify the frontend
+that it's time to make a new GET request? I like the simplicity of
+HTTP requests and they will already be used to intialize app state, so
+I think we should use HTTP requests as much as possible and use
+websockets only to notify the frontend from the backend, and wherever
+else there is a good argument. This keeps the websocket API small for
+now.
 
 ## Notes
 
